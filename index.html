@@ -708,27 +708,236 @@
     #printArea .label-inner { display: flex; gap: 16px; }
   }
 
-  @media (max-width: 700px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .form-row { grid-template-columns: 1fr; }
-    header { padding: 0 16px; }
-    .container { padding: 20px 16px; }
-    td, th { padding: 10px 12px; }
+  /* MITARBEITER-AUSWAHL */
+  .mitarbeiter-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 450;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
   }
 
-  /* TABLET OPTIMIERUNG */
-  @media (min-width: 700px) and (max-width: 1100px) {
-    .stats { grid-template-columns: repeat(5, 1fr); }
-    td, th { padding: 16px 14px; }
-    .action-btn { padding: 8px 14px; font-size: 13px; }
-    .btn { padding: 12px 22px; font-size: 15px; }
+  .mitarbeiter-screen.open { display: flex; }
+
+  .mitarbeiter-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 480px;
+    max-width: 100%;
   }
 
-  @media (max-width: 600px) {
+  .mitarbeiter-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .mitarbeiter-subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .mitarbeiter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mitarbeiter-btn {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .mitarbeiter-btn:hover, .mitarbeiter-btn:active {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .mitarbeiter-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .mitarbeiter-info { flex: 1; }
+  .mitarbeiter-name { font-size: 18px; font-weight: 600; }
+  .mitarbeiter-rolle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* MITARBEITER-ANZEIGE IN HEADER */
+  .current-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px 6px 6px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .current-user:hover { border-color: var(--accent); }
+
+  .current-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    color: #000;
+  }
+
+  .current-user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* MITARBEITER-INFO IN TABELLE */
+  .changed-by {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .changed-by-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 9px;
+    color: #000;
+  }
+
+  /* MOBILE / TABLET OPTIMIERUNG */
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+    .stat-card { padding: 14px 16px; }
+    .stat-value { font-size: 30px; }
+
+    header { padding: 0 12px; height: 56px; }
+    .logo { font-size: 22px; }
+    .container { padding: 16px 12px; }
+
+    .user-info { gap: 8px; }
+    .user-info #dateLabel { display: none; }
+
+    /* TABELLE → KARTEN */
+    .table-wrap { background: transparent; border: none; }
+    .table-wrap table { display: none; }
+
+    .mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+
+    .mobile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .mobile-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .mobile-card-kz {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 2px;
+    }
+
+    .mobile-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .mobile-card-row .label { color: var(--muted); }
+    .mobile-card-row .value { color: var(--text); }
+
+    .mobile-card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .mobile-card-actions .action-btn {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    /* SCHNELL-MODUS noch größer auf Mobile */
     .quick-modal { padding: 24px; }
-    .quick-kz { font-size: 42px; }
+    .quick-kz { font-size: 44px; letter-spacing: 3px; }
+    .quick-info { font-size: 16px; }
     .quick-status-grid { grid-template-columns: 1fr; }
     .quick-btn.abholbereit { grid-column: span 1; }
+    .quick-btn { padding: 20px 16px; font-size: 17px; }
+
+    /* TOOLBAR kompakter */
+    .toolbar { gap: 8px; }
+    .search-box { padding: 12px 14px; font-size: 15px; }
+
+    .modal { padding: 20px; }
+    .modal-title { font-size: 22px; margin-bottom: 16px; }
+    .stat-card.regal .stat-value { font-size: 12px; }
+  }
+
+  .mobile-cards { display: none; }
+
+  @media (max-width: 900px) {
+    .mobile-cards { display: flex; }
+  }
+
+  @media (max-width: 700px) {
+    .form-row { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -753,10 +962,22 @@
   </div>
 </div>
 
+<!-- MITARBEITER-AUSWAHL -->
+<div class="mitarbeiter-screen" id="mitarbeiterScreen">
+  <div class="mitarbeiter-box">
+    <div class="mitarbeiter-title">Wer arbeitet?</div>
+    <div class="mitarbeiter-subtitle">Bitte Mitarbeiter auswählen</div>
+    <div class="mitarbeiter-list" id="mitarbeiterList"></div>
+  </div>
+</div>
+
 <header>
   <div class="logo">Felgen<span>Track</span></div>
   <div class="user-info">
-    <span class="user-email" id="userEmail"></span>
+    <div class="current-user" id="currentUserBadge" onclick="switchMitarbeiter()" style="display:none">
+      <div class="current-user-avatar" id="currentUserAvatar">?</div>
+      <span class="current-user-name" id="currentUserName">–</span>
+    </div>
     <span id="dateLabel" style="color:var(--muted)"></span>
     <button class="btn" onclick="openModal()">+ Neue Felge</button>
     <button class="logout-btn" onclick="doLogout()">Abmelden</button>
@@ -827,6 +1048,7 @@
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
+    <div class="mobile-cards" id="mobileCards"></div>
     <div class="empty-state" id="emptyState" style="display:none">
       <div class="empty-icon">🔧</div>
       <div>Noch keine Einträge – klick oben auf „+ Neue Felge"</div>
@@ -956,6 +1178,13 @@
 // KONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
+// Mitarbeiter-Liste – hier kannst du Mitarbeiter hinzufügen/entfernen
+const MITARBEITER = [
+  { name: 'Nick', rolle: 'Chef',        farbe: '#e8c840' },
+  { name: 'Flo',  rolle: 'Mitarbeiter', farbe: '#4a9eff' },
+  { name: 'Nico', rolle: 'Mitarbeiter', farbe: '#4caf7d' },
+];
+
 const SUPABASE_URL = 'https://jahqqmhvwparcjqkiqzv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphaHFxbWh2d3BhcmNqcWtpcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDg0NTQsImV4cCI6MjA5NTE4NDQ1NH0.f-vLcYHkw03yYwb7z8hk90Xpjcy5enAnDHMvRS9V5TM';
 
@@ -969,9 +1198,68 @@ async function checkSession() {
   const { data: { session } } = await supa.auth.getSession();
   if (session) {
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('userEmail').textContent = session.user.email;
-    initApp();
+    // Mitarbeiter-Auswahl prüfen
+    showMitarbeiterPicker();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MITARBEITER-AUSWAHL
+// ═══════════════════════════════════════════════════════════════
+
+function showMitarbeiterPicker() {
+  const saved = localStorage.getItem('ft_mitarbeiter');
+  if (saved) {
+    // Schon ausgewählt – direkt App starten
+    setCurrentMitarbeiter(JSON.parse(saved));
+    initApp();
+    return;
+  }
+
+  // Auswahl-Liste rendern
+  const list = document.getElementById('mitarbeiterList');
+  list.innerHTML = '';
+  MITARBEITER.forEach(m => {
+    const btn = document.createElement('div');
+    btn.className = 'mitarbeiter-btn';
+    btn.innerHTML = `
+      <div class="mitarbeiter-avatar" style="background:${m.farbe}">${m.name[0]}</div>
+      <div class="mitarbeiter-info">
+        <div class="mitarbeiter-name">${m.name}</div>
+        <div class="mitarbeiter-rolle">${m.rolle}</div>
+      </div>
+    `;
+    btn.onclick = () => {
+      localStorage.setItem('ft_mitarbeiter', JSON.stringify(m));
+      setCurrentMitarbeiter(m);
+      document.getElementById('mitarbeiterScreen').classList.remove('open');
+      initApp();
+    };
+    list.appendChild(btn);
+  });
+
+  document.getElementById('mitarbeiterScreen').classList.add('open');
+}
+
+let currentMitarbeiter = null;
+
+function setCurrentMitarbeiter(m) {
+  currentMitarbeiter = m;
+  document.getElementById('currentUserBadge').style.display = 'flex';
+  document.getElementById('currentUserAvatar').textContent = m.name[0];
+  document.getElementById('currentUserAvatar').style.background = m.farbe;
+  document.getElementById('currentUserName').textContent = m.name;
+}
+
+function switchMitarbeiter() {
+  if (!confirm('Mitarbeiter wechseln?')) return;
+  localStorage.removeItem('ft_mitarbeiter');
+  location.reload();
+}
+
+function getMitarbeiterFarbe(name) {
+  const m = MITARBEITER.find(x => x.name === name);
+  return m ? m.farbe : '#777';
 }
 
 async function doLogin() {
@@ -1002,9 +1290,8 @@ async function doLogin() {
   }
 
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('userEmail').textContent = data.user.email;
   document.getElementById('loginPassword').value = '';
-  initApp();
+  showMitarbeiterPicker();
 }
 
 async function doLogout() {
@@ -1059,6 +1346,8 @@ async function loadData() {
       regal: r.regal || '',
       status: r.status || 'eingang',
       datum: r.datum || new Date(r.created_at).toLocaleDateString('de-DE'),
+      geaendert_von: r.geaendert_von || null,
+      geaendert_am:  r.geaendert_am  || null,
     }));
 
     renderTable();
@@ -1122,6 +1411,7 @@ function renderTable() {
   const fs = document.getElementById('filterStatus').value;
   const fr = document.getElementById('filterRegal').value;
   const tbody = document.getElementById('tableBody');
+  const cards = document.getElementById('mobileCards');
 
   const filtered = data.filter(r =>
     (!q  || r.kz.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) &&
@@ -1130,9 +1420,11 @@ function renderTable() {
   );
 
   tbody.innerHTML = '';
+  cards.innerHTML = '';
   document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
 
   filtered.forEach(r => {
+    // Desktop-Tabellen-Zeile
     const tr = document.createElement('tr');
     tr.dataset.id = r.id;
     tr.innerHTML = `
@@ -1148,6 +1440,12 @@ function renderTable() {
           <span class="status-dot"></span>
           ${statusLabels[r.status]}
         </span>
+        ${r.geaendert_von ? `
+          <div class="changed-by">
+            <span class="changed-by-avatar" style="background:${getMitarbeiterFarbe(r.geaendert_von)}">${r.geaendert_von[0]}</span>
+            <span>${r.geaendert_von} · ${formatTimeAgo(r.geaendert_am)}</span>
+          </div>
+        ` : ''}
       </td>
       <td class="date-cell">${r.datum}</td>
       <td>
@@ -1160,9 +1458,76 @@ function renderTable() {
       </td>
     `;
     tbody.appendChild(tr);
+
+    // Mobile Karte
+    const card = document.createElement('div');
+    card.className = 'mobile-card';
+    card.dataset.id = r.id;
+    card.innerHTML = `
+      <div class="mobile-card-top">
+        <span class="mobile-card-kz">${r.kz}</span>
+        <span class="status ${r.status}">
+          <span class="status-dot"></span>
+          ${statusLabels[r.status]}
+        </span>
+      </div>
+      <div class="mobile-card-row">
+        <span class="label">Kunde</span>
+        <span class="value">${r.name}</span>
+      </div>
+      ${r.tel ? `
+      <div class="mobile-card-row">
+        <span class="label">Telefon</span>
+        <span class="value">${r.tel}</span>
+      </div>` : ''}
+      ${r.regal ? `
+      <div class="mobile-card-row">
+        <span class="label">Regal</span>
+        <span class="value"><span class="regal-badge">🗄 ${r.regal}</span></span>
+      </div>` : ''}
+      ${r.notiz ? `
+      <div class="mobile-card-row">
+        <span class="label">Notiz</span>
+        <span class="value" style="text-align:right;max-width:60%">${r.notiz}</span>
+      </div>` : ''}
+      ${r.geaendert_von ? `
+      <div class="mobile-card-row">
+        <span class="label">Zuletzt</span>
+        <span class="value" style="display:flex;align-items:center;gap:6px">
+          <span class="changed-by-avatar" style="background:${getMitarbeiterFarbe(r.geaendert_von)}">${r.geaendert_von[0]}</span>
+          ${r.geaendert_von} · ${formatTimeAgo(r.geaendert_am)}
+        </span>
+      </div>` : ''}
+      <div class="mobile-card-actions">
+        <button class="action-btn" onclick="openQuick(${r.id})">⚡ Status</button>
+        <button class="action-btn" onclick="editEntry(${r.id})">✏️</button>
+        <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️</button>
+        <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
+      </div>
+    `;
+    cards.appendChild(card);
   });
 
   updateStats();
+}
+
+function formatTimeAgo(isoString) {
+  if (!isoString) return '–';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return 'gerade eben';
+  if (diffMin < 60) return `vor ${diffMin} Min`;
+
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `vor ${diffH} Std`;
+
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return `vor ${diffD} ${diffD === 1 ? 'Tag' : 'Tagen'}`;
+
+  return date.toLocaleDateString('de-DE');
 }
 
 function updateStats() {
@@ -1244,6 +1609,8 @@ async function saveEntry() {
     regal: document.getElementById('inputRegal').value,
     status: selectedStatus,
     datum: new Date().toLocaleDateString('de-DE'),
+    geaendert_von: currentMitarbeiter ? currentMitarbeiter.name : null,
+    geaendert_am: new Date().toISOString(),
   };
 
   const btn = document.getElementById('saveBtn');
@@ -1347,6 +1714,11 @@ function openQuick(id) {
       <span class="status-dot"></span>
       Aktuell: ${statusLabels[r.status]}
     </div>
+    ${r.geaendert_von ? `
+      <div style="margin-top:10px;color:var(--muted);font-size:13px">
+        Zuletzt geändert von <strong style="color:${getMitarbeiterFarbe(r.geaendert_von)}">${r.geaendert_von}</strong> · ${formatTimeAgo(r.geaendert_am)}
+      </div>
+    ` : ''}
   `;
 
   // Aktuellen Status-Button hervorheben
@@ -1386,7 +1758,11 @@ async function quickChangeStatus(newStatus) {
   try {
     const { error } = await supa
       .from('felgen')
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+        geaendert_von: currentMitarbeiter ? currentMitarbeiter.name : null,
+        geaendert_am: new Date().toISOString(),
+      })
       .eq('id', quickCurrentId);
 
     if (error) throw error;
