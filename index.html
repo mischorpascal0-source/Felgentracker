@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FelgenTrack – Bearbeitungsstatus</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222;
+    --border: #2e2e2e;
+    --accent: #e8c840;
+    --text: #f0f0f0;
+    --muted: #777;
+    --green: #4caf7d;
+    --blue: #4a9eff;
+    --orange: #ff9533;
+    --red: #ff4f4f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--accent); }
+  .logo span { color: var(--text); }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .user-email { color: var(--text); }
+
+  .logout-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .stat-card.total::before    { background: var(--accent); }
+  .stat-card.progress::before { background: var(--blue); }
+  .stat-card.done::before     { background: var(--green); }
+  .stat-card.waiting::before  { background: var(--orange); }
+  .stat-card.regal::before    { background: #a78bfa; }
+
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; }
+
+  .stat-card.total .stat-value    { color: var(--accent); }
+  .stat-card.progress .stat-value { color: var(--blue); }
+  .stat-card.done .stat-value     { color: var(--green); }
+  .stat-card.waiting .stat-value  { color: var(--orange); }
+  .stat-card.regal .stat-value    { color: #a78bfa; font-size: 14px; line-height: 1.6; margin-top: 4px; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 180px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+
+  .btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(232,200,64,0.04); }
+  tbody tr.highlighted { background: rgba(232,200,64,0.12); animation: highlightFade 3s ease; }
+
+  @keyframes highlightFade {
+    0% { background: rgba(232,200,64,0.3); }
+    100% { background: rgba(232,200,64,0.12); }
+  }
+
+  td { padding: 14px 16px; font-size: 14px; vertical-align: middle; }
+
+  .kz {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 1.5px;
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+  }
+
+  .customer-name { font-weight: 600; color: var(--text); }
+  .customer-phone { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .regal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(167,139,250,0.12);
+    color: #a78bfa;
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .status.eingang     { background: rgba(119,119,119,0.15); color: #aaa; }
+  .status.eingang .status-dot { background: #aaa; }
+
+  .status.bearbeitung { background: rgba(74,158,255,0.15); color: var(--blue); }
+  .status.bearbeitung .status-dot { background: var(--blue); animation: pulse 1.5s infinite; }
+
+  .status.qualitaet   { background: rgba(255,149,51,0.15); color: var(--orange); }
+  .status.qualitaet .status-dot { background: var(--orange); }
+
+  .status.fertig      { background: rgba(76,175,125,0.15); color: var(--green); }
+  .status.fertig .status-dot { background: var(--green); }
+
+  .status.abholbereit { background: rgba(232,200,64,0.15); color: var(--accent); }
+  .status.abholbereit .status-dot { background: var(--accent); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .date-cell { color: var(--muted); font-size: 13px; }
+
+  .action-group { display: flex; gap: 6px; }
+
+  .action-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.print-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+  .action-btn.delete-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 520px;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    color: var(--accent);
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { margin-bottom: 16px; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .status-option {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    color: var(--muted);
+  }
+
+  .status-option:hover { border-color: var(--accent); color: var(--text); }
+  .status-option.selected { border-color: var(--accent); background: rgba(232,200,64,0.08); color: var(--text); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .modal-actions .btn { flex: 1; text-align: center; }
+
+  .label-modal { width: 420px; }
+
+  /* QUICK STATUS MODAL (Tablet-Modus) */
+  .quick-modal {
+    width: 600px;
+    max-width: 100%;
+    padding: 40px;
+  }
+
+  .quick-felge-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .quick-kz {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .quick-info {
+    color: var(--text);
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .quick-info-sub {
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .quick-current-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .quick-status-label {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+  }
+
+  .quick-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .quick-btn {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .quick-btn:hover, .quick-btn:active {
+    transform: scale(1.02);
+  }
+
+  .quick-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quick-btn-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .quick-btn.eingang     { border-color: rgba(170,170,170,0.3); }
+  .quick-btn.eingang:hover { background: rgba(170,170,170,0.1); border-color: #aaa; }
+
+  .quick-btn.bearbeitung { border-color: rgba(74,158,255,0.3); }
+  .quick-btn.bearbeitung:hover { background: rgba(74,158,255,0.1); border-color: var(--blue); }
+
+  .quick-btn.qualitaet   { border-color: rgba(255,149,51,0.3); }
+  .quick-btn.qualitaet:hover { background: rgba(255,149,51,0.1); border-color: var(--orange); }
+
+  .quick-btn.fertig      { border-color: rgba(76,175,125,0.3); }
+  .quick-btn.fertig:hover { background: rgba(76,175,125,0.1); border-color: var(--green); }
+
+  .quick-btn.abholbereit {
+    border-color: rgba(232,200,64,0.4);
+    background: rgba(232,200,64,0.05);
+    grid-column: span 2;
+  }
+  .quick-btn.abholbereit:hover {
+    background: rgba(232,200,64,0.15);
+    border-color: var(--accent);
+  }
+
+  .quick-btn.current {
+    background: rgba(232,200,64,0.15);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,200,64,0.1);
+  }
+
+  .quick-actions {
+    margin-top: 28px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .quick-close-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .quick-close-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .quick-edit-link {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .quick-edit-link:hover { border-color: var(--accent); }
+
+  #labelPreview {
+    background: #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .label-inner { display: flex; gap: 16px; align-items: flex-start; }
+  .label-qr { flex-shrink: 0; }
+
+  .label-kz {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: #000;
+    line-height: 1;
+    margin-bottom: 6px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+  }
+
+  .label-row { font-size: 13px; color: #222; margin-bottom: 3px; display: flex; gap: 6px; }
+  .label-row strong { font-weight: 600; min-width: 70px; display: inline-block; }
+
+  .label-footer {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #888;
+    border-top: 1px solid #ddd;
+    padding-top: 8px;
+    text-align: center;
+  }
+
+  /* LOGIN SCREEN */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 400px;
+    max-width: 100%;
+  }
+
+  .login-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .login-logo span { color: var(--text); }
+
+  .login-subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+
+  .login-form-group { margin-bottom: 14px; }
+
+  .login-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .login-input:focus { border-color: var(--accent); }
+
+  .login-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 6px;
+  }
+
+  .login-btn:hover { opacity: 0.85; }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .login-error {
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 14px;
+    min-height: 16px;
+    text-align: center;
+  }
+
+  /* LOADER */
+  .loader {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-overlay {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--muted);
+    z-index: 300;
+    display: none;
+  }
+
+  .loading-overlay.show { display: block; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--green);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 400;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--red); color: #fff; }
+
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; position: fixed; inset: 0; background: #fff; padding: 20px; }
+    #printArea .label-inner { display: flex; gap: 16px; }
+  }
+
+  @media (max-width: 700px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    header { padding: 0 16px; }
+    .container { padding: 20px 16px; }
+    td, th { padding: 10px 12px; }
+  }
+
+  /* TABLET OPTIMIERUNG */
+  @media (min-width: 700px) and (max-width: 1100px) {
+    .stats { grid-template-columns: repeat(5, 1fr); }
+    td, th { padding: 16px 14px; }
+    .action-btn { padding: 8px 14px; font-size: 13px; }
+    .btn { padding: 12px 22px; font-size: 15px; }
+  }
+
+  @media (max-width: 600px) {
+    .quick-modal { padding: 24px; }
+    .quick-kz { font-size: 42px; }
+    .quick-status-grid { grid-template-columns: 1fr; }
+    .quick-btn.abholbereit { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Felgen<span>Track</span></div>
+    <div class="login-subtitle">Bitte melde dich an</div>
+
+    <div class="login-form-group">
+      <input type="email" class="login-input" id="loginEmail" placeholder="E-Mail" autocomplete="email">
+    </div>
+    <div class="login-form-group">
+      <input type="password" class="login-input" id="loginPassword" placeholder="Passwort" autocomplete="current-password">
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Anmelden</button>
+
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Felgen<span>Track</span></div>
+  <div class="user-info">
+    <span class="user-email" id="userEmail"></span>
+    <span id="dateLabel" style="color:var(--muted)"></span>
+    <button class="btn" onclick="openModal()">+ Neue Felge</button>
+    <button class="logout-btn" onclick="doLogout()">Abmelden</button>
+  </div>
+</header>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <span class="loader"></span> Lade Daten...
+</div>
+
+<div class="container">
+
+  <div class="stats">
+    <div class="stat-card total">
+      <div class="stat-label">Gesamt</div>
+      <div class="stat-value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card progress">
+      <div class="stat-label">In Arbeit</div>
+      <div class="stat-value" id="statProgress">0</div>
+    </div>
+    <div class="stat-card done">
+      <div class="stat-label">Fertig</div>
+      <div class="stat-value" id="statDone">0</div>
+    </div>
+    <div class="stat-card waiting">
+      <div class="stat-label">Abholbereit</div>
+      <div class="stat-value" id="statWaiting">0</div>
+    </div>
+    <div class="stat-card regal">
+      <div class="stat-label">Belegte Regale</div>
+      <div class="stat-value" id="statRegal">–</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search-box" placeholder="🔍  Kennzeichen oder Name suchen..." id="searchInput" oninput="renderTable()">
+    <select class="search-box" style="flex:0;width:auto" id="filterStatus" onchange="renderTable()">
+      <option value="">Alle Status</option>
+      <option value="eingang">Eingang</option>
+      <option value="bearbeitung">In Bearbeitung</option>
+      <option value="qualitaet">Qualitätsprüfung</option>
+      <option value="fertig">Fertig</option>
+      <option value="abholbereit">Abholbereit</option>
+    </select>
+    <select class="search-box" style="flex:0;width:auto" id="filterRegal" onchange="renderTable()">
+      <option value="">Alle Regale</option>
+      <option value="1">Regal 1</option><option value="2">Regal 2</option>
+      <option value="3">Regal 3</option><option value="4">Regal 4</option>
+      <option value="5">Regal 5</option><option value="6">Regal 6</option>
+      <option value="7">Regal 7</option><option value="8">Regal 8</option>
+      <option value="9">Regal 9</option><option value="10">Regal 10</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Kennzeichen</th>
+          <th>Kunde</th>
+          <th>Notiz</th>
+          <th>Regal</th>
+          <th>Status</th>
+          <th>Eingang</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="empty-icon">🔧</div>
+      <div>Noch keine Einträge – klick oben auf „+ Neue Felge"</div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Neue Felge anlegen</div>
+
+    <div class="section-label">Fahrzeug</div>
+    <div class="form-group">
+      <label>Kennzeichen *</label>
+      <input type="text" id="inputKZ" placeholder="z.B. M-AB 1234" style="text-transform:uppercase">
+    </div>
+    <div class="form-group">
+      <label>Notiz (optional)</label>
+      <input type="text" id="inputNotiz" placeholder="z.B. 4x Alufelge 18 Zoll, Kratzer">
+    </div>
+
+    <hr class="divider">
+    <div class="section-label">Kunde</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" id="inputName" placeholder="Max Mustermann">
+      </div>
+      <div class="form-group">
+        <label>Telefon</label>
+        <input type="tel" id="inputTel" placeholder="+49 170 1234567">
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div class="section-label">Lager & Status</div>
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Regal</label>
+        <select id="inputRegal">
+          <option value="">– kein –</option>
+          <option value="1">Regal 1</option><option value="2">Regal 2</option>
+          <option value="3">Regal 3</option><option value="4">Regal 4</option>
+          <option value="5">Regal 5</option><option value="6">Regal 6</option>
+          <option value="7">Regal 7</option><option value="8">Regal 8</option>
+          <option value="9">Regal 9</option><option value="10">Regal 10</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Status</label>
+      <div class="status-grid">
+        <div class="status-option" data-val="eingang"     onclick="selectStatus(this)">⬛ Eingang</div>
+        <div class="status-option" data-val="bearbeitung" onclick="selectStatus(this)">🔵 In Bearbeitung</div>
+        <div class="status-option" data-val="qualitaet"   onclick="selectStatus(this)">🟠 Qualitätsprüfung</div>
+        <div class="status-option" data-val="fertig"      onclick="selectStatus(this)">🟢 Fertig</div>
+        <div class="status-option" data-val="abholbereit" onclick="selectStatus(this)" style="grid-column:span 2">⭐ Abholbereit</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn" id="saveBtn" onclick="saveEntry()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK STATUS MODAL (Tablet-Modus) -->
+<div class="modal-overlay" id="quickOverlay" onclick="closeQuickOnOverlay(event)">
+  <div class="modal quick-modal">
+    <div class="quick-felge-header">
+      <div class="quick-kz" id="quickKZ">–</div>
+      <div class="quick-info" id="quickName">–</div>
+      <div class="quick-info-sub" id="quickDetails">–</div>
+      <div id="quickStatusBadge"></div>
+    </div>
+
+    <div class="quick-status-label">Status ändern:</div>
+
+    <div class="quick-status-grid">
+      <button class="quick-btn eingang" data-val="eingang" onclick="quickChangeStatus('eingang')">
+        <span class="quick-btn-icon">⬛</span> Eingang
+      </button>
+      <button class="quick-btn bearbeitung" data-val="bearbeitung" onclick="quickChangeStatus('bearbeitung')">
+        <span class="quick-btn-icon">🔵</span> In Bearbeitung
+      </button>
+      <button class="quick-btn qualitaet" data-val="qualitaet" onclick="quickChangeStatus('qualitaet')">
+        <span class="quick-btn-icon">🟠</span> Qualitätsprüfung
+      </button>
+      <button class="quick-btn fertig" data-val="fertig" onclick="quickChangeStatus('fertig')">
+        <span class="quick-btn-icon">🟢</span> Fertig
+      </button>
+      <button class="quick-btn abholbereit" data-val="abholbereit" onclick="quickChangeStatus('abholbereit')">
+        <span class="quick-btn-icon">⭐</span> Abholbereit
+      </button>
+    </div>
+
+    <div class="quick-actions">
+      <button class="quick-close-btn" onclick="closeQuick()">Schließen</button>
+      <button class="quick-edit-link" onclick="quickToFullEdit()">Vollständig bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- LABEL MODAL -->
+<div class="modal-overlay" id="labelModalOverlay" onclick="closeLabelOnOverlay(event)">
+  <div class="modal label-modal">
+    <div class="modal-title">🏷️ Label drucken</div>
+    <div id="labelPreview"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      💡 Im Druckdialog "Ränder: Keine" wählen für bestes Ergebnis.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeLabelModal()">Schließen</button>
+      <button class="btn" onclick="printLabel()">🖨️ Drucken</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea" style="display:none"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// KONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+
+const SUPABASE_URL = 'https://jahqqmhvwparcjqkiqzv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphaHFxbWh2d3BhcmNqcWtpcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDg0NTQsImV4cCI6MjA5NTE4NDQ1NH0.f-vLcYHkw03yYwb7z8hk90Xpjcy5enAnDHMvRS9V5TM';
+
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════════════════════
+// LOGIN / SESSION
+// ═══════════════════════════════════════════════════════════════
+
+async function checkSession() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('userEmail').textContent = session.user.email;
+    initApp();
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw    = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+  const btn   = document.getElementById('loginBtn');
+
+  if (!email || !pw) {
+    err.textContent = 'Bitte E-Mail und Passwort eingeben';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Anmelden...';
+  err.textContent = '';
+
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pw });
+
+  btn.disabled = false;
+  btn.textContent = 'Anmelden';
+
+  if (error) {
+    err.textContent = error.message === 'Invalid login credentials'
+      ? 'E-Mail oder Passwort falsch'
+      : 'Fehler: ' + error.message;
+    return;
+  }
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('userEmail').textContent = data.user.email;
+  document.getElementById('loginPassword').value = '';
+  initApp();
+}
+
+async function doLogout() {
+  if (!confirm('Wirklich abmelden?')) return;
+  await supa.auth.signOut();
+  location.reload();
+}
+
+// Enter-Taste = Login
+document.getElementById('loginPassword').addEventListener('keypress', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginEmail').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════
+
+let data = [];
+let editId = null;
+let selectedStatus = 'eingang';
+const statusLabels = {
+  eingang:     'Eingang',
+  bearbeitung: 'In Bearbeitung',
+  qualitaet:   'Qualitätsprüfung',
+  fertig:      'Fertig',
+  abholbereit: 'Abholbereit'
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE FUNKTIONEN
+// ═══════════════════════════════════════════════════════════════
+
+async function loadData() {
+  document.getElementById('loadingOverlay').classList.add('show');
+  try {
+    const { data: rows, error } = await supa
+      .from('felgen')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    data = (rows || []).map(r => ({
+      id:    r.id,
+      kz:    r.kz    || '',
+      name:  r.name  || '',
+      tel:   r.tel   || '',
+      notiz: r.notiz || '',
+      regal: r.regal || '',
+      status: r.status || 'eingang',
+      datum: r.datum || new Date(r.created_at).toLocaleDateString('de-DE'),
+    }));
+
+    renderTable();
+
+    // Falls per QR-Code geöffnet → Quick-Status-Modus öffnen
+    const params = new URLSearchParams(window.location.search);
+    const qrId = params.get('id');
+    if (qrId) {
+      const found = data.find(x => String(x.id) === qrId);
+      if (found) {
+        setTimeout(() => {
+          openQuick(found.id);
+          const row = document.querySelector(`tr[data-id="${found.id}"]`);
+          if (row) row.classList.add('highlighted');
+        }, 300);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('⚠ Fehler beim Laden: ' + e.message, true);
+  } finally {
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+}
+
+async function saveToDb(entry) {
+  if (editId) {
+    const { error } = await supa.from('felgen').update(entry).eq('id', editId);
+    if (error) throw error;
+  } else {
+    const { data: inserted, error } = await supa.from('felgen').insert([entry]).select();
+    if (error) throw error;
+    return inserted[0];
+  }
+}
+
+async function deleteFromDb(id) {
+  const { error } = await supa.from('felgen').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+function initApp() {
+  document.getElementById('dateLabel').textContent =
+    '· ' + new Date().toLocaleDateString('de-DE', { day:'numeric', month:'long', year:'numeric' });
+  loadData();
+}
+
+// Session prüfen beim Start
+checkSession();
+
+// ═══════════════════════════════════════════════════════════════
+// TABELLE
+// ═══════════════════════════════════════════════════════════════
+
+function renderTable() {
+  const q  = document.getElementById('searchInput').value.toLowerCase();
+  const fs = document.getElementById('filterStatus').value;
+  const fr = document.getElementById('filterRegal').value;
+  const tbody = document.getElementById('tableBody');
+
+  const filtered = data.filter(r =>
+    (!q  || r.kz.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) &&
+    (!fs || r.status === fs) &&
+    (!fr || r.regal === fr)
+  );
+
+  tbody.innerHTML = '';
+  document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
+
+  filtered.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = r.id;
+    tr.innerHTML = `
+      <td><span class="kz">${r.kz}</span></td>
+      <td>
+        <div class="customer-name">${r.name}</div>
+        <div class="customer-phone">${r.tel || '–'}</div>
+      </td>
+      <td style="color:var(--muted);font-size:13px">${r.notiz || '–'}</td>
+      <td>${r.regal ? `<span class="regal-badge">🗄 Regal ${r.regal}</span>` : '<span style="color:var(--muted)">–</span>'}</td>
+      <td>
+        <span class="status ${r.status}">
+          <span class="status-dot"></span>
+          ${statusLabels[r.status]}
+        </span>
+      </td>
+      <td class="date-cell">${r.datum}</td>
+      <td>
+        <div class="action-group">
+          <button class="action-btn" onclick="openQuick(${r.id})">⚡ Status</button>
+          <button class="action-btn" onclick="editEntry(${r.id})">✏️ Bearbeiten</button>
+          <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️ Label</button>
+          <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent    = data.length;
+  document.getElementById('statProgress').textContent = data.filter(r=>r.status==='bearbeitung').length;
+  document.getElementById('statDone').textContent     = data.filter(r=>r.status==='fertig').length;
+  document.getElementById('statWaiting').textContent  = data.filter(r=>r.status==='abholbereit').length;
+  const regale = [...new Set(data.filter(r=>r.regal).map(r=>r.regal))].sort((a,b)=>+a-+b);
+  const el = document.getElementById('statRegal');
+  el.style.fontSize = regale.length ? '14px' : '38px';
+  el.textContent = regale.length ? regale.map(r=>'Regal '+r).join(', ') : '0';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════════════════════
+
+function openModal(id=null) {
+  editId = id;
+  document.getElementById('modalTitle').textContent = id ? 'Felge bearbeiten' : 'Neue Felge anlegen';
+  document.getElementById('inputKZ').disabled = !!id;
+  if (id) {
+    const r = data.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('inputKZ').value    = r.kz;
+    document.getElementById('inputNotiz').value = r.notiz;
+    document.getElementById('inputName').value  = r.name;
+    document.getElementById('inputTel').value   = r.tel;
+    document.getElementById('inputRegal').value = r.regal;
+    selectStatusByVal(r.status);
+  } else {
+    ['inputKZ','inputNotiz','inputName','inputTel'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('inputRegal').value='';
+    selectStatusByVal('eingang');
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editId = null;
+  if (window.location.search) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function closeOnOverlay(e) { if (e.target===document.getElementById('modalOverlay')) closeModal(); }
+function editEntry(id) { openModal(id); }
+
+function selectStatus(el) {
+  document.querySelectorAll('.status-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedStatus = el.dataset.val;
+}
+
+function selectStatusByVal(val) {
+  document.querySelectorAll('.status-option').forEach(o=>o.classList.toggle('selected', o.dataset.val===val));
+  selectedStatus = val;
+}
+
+async function saveEntry() {
+  const kz   = document.getElementById('inputKZ').value.trim().toUpperCase();
+  const name = document.getElementById('inputName').value.trim();
+  const highlight = id => {
+    const el = document.getElementById(id);
+    el.style.borderColor='var(--red)';
+    setTimeout(()=>el.style.borderColor='',1500);
+  };
+  if (!kz || !name) {
+    if(!kz)   highlight('inputKZ');
+    if(!name) highlight('inputName');
+    return;
+  }
+
+  const entry = {
+    kz, name,
+    tel:   document.getElementById('inputTel').value.trim(),
+    notiz: document.getElementById('inputNotiz').value.trim(),
+    regal: document.getElementById('inputRegal').value,
+    status: selectedStatus,
+    datum: new Date().toLocaleDateString('de-DE'),
+  };
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Speichern...';
+
+  try {
+    await saveToDb(entry);
+    showToast(editId ? '✓ Aktualisiert' : '✓ Felge angelegt');
+    closeModal();
+    await loadData();
+  } catch (e) {
+    console.error(e);
+    showToast('⚠ Fehler: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Speichern';
+  }
+}
+
+async function deleteEntry(id) {
+  const r = data.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`Felge "${r.kz}" wirklich löschen?`)) return;
+  try {
+    await deleteFromDb(id);
+    showToast('✓ Gelöscht');
+    await loadData();
+  } catch (e) {
+    showToast('⚠ Fehler: ' + e.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LABEL
+// ═══════════════════════════════════════════════════════════════
+
+function openLabelModal(id) {
+  const r = data.find(x=>x.id===id);
+  if (!r) return;
+  const qrUrl = window.location.href.split('?')[0]+'?id='+r.id;
+  document.getElementById('labelPreview').innerHTML = `
+    <div class="label-inner">
+      <div class="label-qr" id="qrContainer"></div>
+      <div class="label-info">
+        <div class="label-kz">${r.kz}</div>
+        <div class="label-row"><strong>Kunde:</strong> ${r.name}</div>
+        <div class="label-row"><strong>Telefon:</strong> ${r.tel||'–'}</div>
+        <div class="label-row"><strong>Regal:</strong> ${r.regal?'Regal '+r.regal:'–'}</div>
+        <div class="label-row"><strong>Notiz:</strong> ${r.notiz||'–'}</div>
+        <div class="label-row"><strong>Eingang:</strong> ${r.datum}</div>
+        <div class="label-row"><strong>ID:</strong> ${r.id}</div>
+      </div>
+    </div>
+    <div class="label-footer">FelgenTrack · QR-Code scannen zum Status-Update</div>
+  `;
+  try {
+    new QRCode(document.getElementById('qrContainer'), { text:qrUrl, width:100, height:100, colorDark:'#000000', colorLight:'#ffffff' });
+  } catch(e) {
+    document.getElementById('qrContainer').innerHTML='<div style="width:100px;height:100px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;border-radius:4px;text-align:center;padding:8px">QR-Code<br>(benötigt<br>Internet)</div>';
+  }
+  document.getElementById('labelModalOverlay').classList.add('open');
+}
+
+function closeLabelModal() { document.getElementById('labelModalOverlay').classList.remove('open'); }
+function closeLabelOnOverlay(e) { if(e.target===document.getElementById('labelModalOverlay')) closeLabelModal(); }
+
+function printLabel() {
+  const content = document.getElementById('labelPreview').innerHTML;
+  const pa = document.getElementById('printArea');
+  pa.innerHTML = `<style>body{font-family:'DM Sans',sans-serif}.label-inner{display:flex;gap:16px;align-items:flex-start;padding:16px}.label-kz{font-size:32px;font-weight:900;letter-spacing:2px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px}.label-row{font-size:13px;margin-bottom:3px;display:flex;gap:6px}.label-row strong{display:inline-block;min-width:70px}.label-footer{font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center;margin:10px 16px 0}</style>${content}`;
+  pa.style.display='block';
+  window.print();
+  setTimeout(()=>pa.style.display='none',1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUICK STATUS MODAL (Tablet-Modus)
+// ═══════════════════════════════════════════════════════════════
+
+let quickCurrentId = null;
+
+function openQuick(id) {
+  const r = data.find(x => x.id === id);
+  if (!r) return;
+
+  quickCurrentId = id;
+  document.getElementById('quickKZ').textContent = r.kz;
+  document.getElementById('quickName').textContent = r.name;
+
+  const details = [
+    r.tel,
+    r.regal ? `Regal ${r.regal}` : null,
+    r.notiz
+  ].filter(Boolean).join(' · ');
+  document.getElementById('quickDetails').textContent = details || '–';
+
+  // Aktuellen Status als Badge anzeigen
+  document.getElementById('quickStatusBadge').innerHTML = `
+    <div class="quick-current-status status ${r.status}">
+      <span class="status-dot"></span>
+      Aktuell: ${statusLabels[r.status]}
+    </div>
+  `;
+
+  // Aktuellen Status-Button hervorheben
+  document.querySelectorAll('.quick-btn').forEach(b => {
+    b.classList.toggle('current', b.dataset.val === r.status);
+  });
+
+  document.getElementById('quickOverlay').classList.add('open');
+}
+
+function closeQuick() {
+  document.getElementById('quickOverlay').classList.remove('open');
+  quickCurrentId = null;
+  if (window.location.search) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function closeQuickOnOverlay(e) {
+  if (e.target === document.getElementById('quickOverlay')) closeQuick();
+}
+
+async function quickChangeStatus(newStatus) {
+  if (!quickCurrentId) return;
+  const r = data.find(x => x.id === quickCurrentId);
+  if (!r) return;
+
+  // Wenn schon der aktuelle Status → einfach schließen
+  if (r.status === newStatus) {
+    closeQuick();
+    return;
+  }
+
+  // Buttons während Speichern deaktivieren
+  document.querySelectorAll('.quick-btn').forEach(b => b.disabled = true);
+
+  try {
+    const { error } = await supa
+      .from('felgen')
+      .update({ status: newStatus })
+      .eq('id', quickCurrentId);
+
+    if (error) throw error;
+
+    showToast('✓ Status: ' + statusLabels[newStatus]);
+    closeQuick();
+    await loadData();
+  } catch (e) {
+    showToast('⚠ Fehler: ' + e.message, true);
+  } finally {
+    document.querySelectorAll('.quick-btn').forEach(b => b.disabled = false);
+  }
+}
+
+function quickToFullEdit() {
+  const id = quickCurrentId;
+  closeQuick();
+  if (id) openModal(id);
+}
+
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', isError);
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
