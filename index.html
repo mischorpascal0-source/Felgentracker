@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FelgenTracker – Bearbeitungsstatus</title>
+<title>FelgenTrack – Bearbeitungsstatus</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -946,7 +946,7 @@
 <!-- LOGIN SCREEN -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">Felgen<span>Tracker</span></div>
+    <div class="login-logo">Felgen<span>Track</span></div>
     <div class="login-subtitle">Bitte melde dich an</div>
 
     <div class="login-form-group">
@@ -972,7 +972,7 @@
 </div>
 
 <header>
-  <div class="logo">Felgen<span>Tracker</span></div>
+  <div class="logo">Felgen<span>Track</span></div>
   <div class="user-info">
     <div class="current-user" id="currentUserBadge" onclick="switchMitarbeiter()" style="display:none">
       <div class="current-user-avatar" id="currentUserAvatar">?</div>
@@ -1030,6 +1030,9 @@
       <option value="5">Regal 5</option><option value="6">Regal 6</option>
       <option value="7">Regal 7</option><option value="8">Regal 8</option>
       <option value="9">Regal 9</option><option value="10">Regal 10</option>
+      <option value="11">Regal 11</option><option value="12">Regal 12</option>
+      <option value="13">Regal 13</option><option value="14">Regal 14</option>
+      <option value="15">Regal 15</option><option value="16">Regal 16</option>
     </select>
   </div>
 
@@ -1096,6 +1099,9 @@
           <option value="5">Regal 5</option><option value="6">Regal 6</option>
           <option value="7">Regal 7</option><option value="8">Regal 8</option>
           <option value="9">Regal 9</option><option value="10">Regal 10</option>
+          <option value="11">Regal 11</option><option value="12">Regal 12</option>
+          <option value="13">Regal 13</option><option value="14">Regal 14</option>
+          <option value="15">Regal 15</option><option value="16">Regal 16</option>
         </select>
       </div>
     </div>
@@ -1180,9 +1186,9 @@
 
 // Mitarbeiter-Liste – hier kannst du Mitarbeiter hinzufügen/entfernen
 const MITARBEITER = [
-  { name: 'Nick', rolle: 'Chef',        farbe: '#e8c840' },
-  { name: 'Flo',  rolle: 'Mitarbeiter', farbe: '#4a9eff' },
-  { name: 'Nico', rolle: 'Mitarbeiter', farbe: '#4caf7d' },
+  { name: 'Nick',    rolle: 'Chef',        farbe: '#e8c840' },
+  { name: 'Flo',     rolle: 'Mitarbeiter', farbe: '#4a9eff' },
+  { name: 'Nico',    rolle: 'Mitarbeiter', farbe: '#4caf7d' },
   { name: 'Patrick', rolle: 'Mitarbeiter', farbe: '#ff9533' },
 ];
 
@@ -1209,15 +1215,7 @@ async function checkSession() {
 // ═══════════════════════════════════════════════════════════════
 
 function showMitarbeiterPicker() {
-  const saved = localStorage.getItem('ft_mitarbeiter');
-  if (saved) {
-    // Schon ausgewählt – direkt App starten
-    setCurrentMitarbeiter(JSON.parse(saved));
-    initApp();
-    return;
-  }
-
-  // Auswahl-Liste rendern
+  // Immer fragen – bei jedem Seitenbesuch
   const list = document.getElementById('mitarbeiterList');
   list.innerHTML = '';
   MITARBEITER.forEach(m => {
@@ -1231,7 +1229,6 @@ function showMitarbeiterPicker() {
       </div>
     `;
     btn.onclick = () => {
-      localStorage.setItem('ft_mitarbeiter', JSON.stringify(m));
       setCurrentMitarbeiter(m);
       document.getElementById('mitarbeiterScreen').classList.remove('open');
       initApp();
@@ -1253,9 +1250,25 @@ function setCurrentMitarbeiter(m) {
 }
 
 function switchMitarbeiter() {
-  if (!confirm('Mitarbeiter wechseln?')) return;
-  localStorage.removeItem('ft_mitarbeiter');
-  location.reload();
+  document.getElementById('mitarbeiterScreen').classList.add('open');
+  const list = document.getElementById('mitarbeiterList');
+  list.innerHTML = '';
+  MITARBEITER.forEach(m => {
+    const btn = document.createElement('div');
+    btn.className = 'mitarbeiter-btn';
+    btn.innerHTML = `
+      <div class="mitarbeiter-avatar" style="background:${m.farbe}">${m.name[0]}</div>
+      <div class="mitarbeiter-info">
+        <div class="mitarbeiter-name">${m.name}</div>
+        <div class="mitarbeiter-rolle">${m.rolle}</div>
+      </div>
+    `;
+    btn.onclick = () => {
+      setCurrentMitarbeiter(m);
+      document.getElementById('mitarbeiterScreen').classList.remove('open');
+    };
+    list.appendChild(btn);
+  });
 }
 
 function getMitarbeiterFarbe(name) {
@@ -1666,7 +1679,7 @@ function openLabelModal(id) {
         <div class="label-row"><strong>ID:</strong> ${r.id}</div>
       </div>
     </div>
-    <div class="label-footer">FelgenTracker · QR-Code scannen zum Status-Update</div>
+    <div class="label-footer">FelgenTrack · QR-Code scannen zum Status-Update</div>
   `;
   try {
     new QRCode(document.getElementById('qrContainer'), { text:qrUrl, width:100, height:100, colorDark:'#000000', colorLight:'#ffffff' });
