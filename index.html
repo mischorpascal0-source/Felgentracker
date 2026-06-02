@@ -1551,8 +1551,8 @@ const statusLabels = {
 // SUPABASE FUNKTIONEN
 // ═══════════════════════════════════════════════════════════════
 
-async function loadData() {
-  document.getElementById('loadingOverlay').classList.add('show');
+async function loadData(silent = false) {
+  if (!silent) document.getElementById('loadingOverlay').classList.add('show');
   try {
     const { data: rows, error } = await supa
       .from('felgen')
@@ -1593,7 +1593,7 @@ async function loadData() {
     console.error(e);
     showToast('⚠ Fehler beim Laden: ' + e.message, true);
   } finally {
-    document.getElementById('loadingOverlay').classList.remove('show');
+    if (!silent) document.getElementById('loadingOverlay').classList.remove('show');
   }
 }
 
@@ -1714,6 +1714,14 @@ function initApp() {
   const theme = localStorage.getItem('ft_theme') || 'dark';
   applyTheme(theme);
   loadData();
+
+  // ── REALTIME: Automatisch aktualisieren ──
+  supa
+    .channel('felgen-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'felgen' }, () => {
+      loadData(true);  // silent = kein Lade-Indikator
+    })
+    .subscribe();
 }
 
 // Session prüfen beim Start
