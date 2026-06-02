@@ -54,24 +54,58 @@
   [data-theme="light"] .quick-btn.current { background: rgba(197,162,0,0.12); border-color: var(--accent); }
   [data-theme="light"] header { background: var(--surface); border-bottom-color: var(--border); }
 
-  /* THEME TOGGLE */
-  .theme-toggle {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px;
+  /* THEME TOGGLE SWITCH */
+  .theme-switch {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    gap: 8px;
+    cursor: pointer;
     flex-shrink: 0;
   }
 
-  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-switch-label {
+    font-size: 14px;
+    color: var(--muted);
+    user-select: none;
+  }
+
+  .theme-switch-track {
+    width: 44px;
+    height: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .theme-switch-track::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  [data-theme="light"] .theme-switch-track {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  [data-theme="light"] .theme-switch-track::before {
+    left: 22px;
+    background: #fff;
+  }
+
+  .theme-switch-icon {
+    font-size: 14px;
+    transition: opacity 0.2s;
+  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -991,8 +1025,9 @@
     .logo { font-size: 22px; }
     .container { padding: 16px 12px; }
 
-    .user-info { gap: 8px; }
+    .user-info { gap: 6px; }
     .user-info #dateLabel { display: none; }
+    .theme-switch-icon { display: none; }
 
     /* TABELLE → KARTEN */
     .table-wrap { background: transparent; border: none; }
@@ -1115,7 +1150,11 @@
     <span id="dateLabel" style="color:var(--muted)"></span>
     <button class="btn" onclick="openModal()">+ Neue Felge</button>
     <button class="btn btn-ghost" onclick="openHistorie()" style="border-color:var(--green);color:var(--green)">📋 Historie</button>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Dark/Light Mode">🌙</button>
+    <div class="theme-switch" onclick="toggleTheme()">
+      <span class="theme-switch-icon">🌙</span>
+      <div class="theme-switch-track" id="themeTrack"></div>
+      <span class="theme-switch-icon">☀️</span>
+    </div>
     <button class="logout-btn" onclick="doLogout()">Abmelden</button>
   </div>
 </header>
@@ -1354,8 +1393,6 @@ const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
   localStorage.setItem('ft_theme', theme);
 }
 
