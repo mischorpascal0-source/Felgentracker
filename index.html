@@ -1798,7 +1798,7 @@ function renderTable() {
           <button class="action-btn" onclick="editEntry(${r.id})">✏️ Bearbeiten</button>
           <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
           <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️ Label</button>
-          ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>` : ''}
+          ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">Löschen</button>` : ''}
         </div>
       </td>
     `;
@@ -1848,7 +1848,7 @@ function renderTable() {
         <button class="action-btn" onclick="editEntry(${r.id})">✏️</button>
         <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
         <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️</button>
-        ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>` : ''}
+        ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">Löschen</button>` : ''}
       </div>
     `;
     cards.appendChild(card);
