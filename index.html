@@ -1494,6 +1494,7 @@ function switchMitarbeiter() {
       }
       setCurrentMitarbeiter(m);
       document.getElementById('mitarbeiterScreen').classList.remove('open');
+      renderTable();
     };
     list.appendChild(btn);
   });
