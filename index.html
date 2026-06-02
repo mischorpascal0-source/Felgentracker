@@ -1436,11 +1436,19 @@ function showMitarbeiterPicker() {
     btn.innerHTML = `
       <div class="mitarbeiter-avatar" style="background:${m.farbe}">${m.name[0]}</div>
       <div class="mitarbeiter-info">
-        <div class="mitarbeiter-name">${m.name}</div>
+        <div class="mitarbeiter-name">${m.name}${m.kannLoeschen ? ' 🔑' : ''}</div>
         <div class="mitarbeiter-rolle">${m.rolle}</div>
       </div>
     `;
     btn.onclick = () => {
+      if (m.kannLoeschen) {
+        const pw = prompt(`Chef-Passwort für ${m.name} eingeben:`);
+        if (pw === null) return;
+        if (pw !== CHEF_PASSWORT) {
+          showToast('⚠ Falsches Passwort', true);
+          return;
+        }
+      }
       setCurrentMitarbeiter(m);
       document.getElementById('mitarbeiterScreen').classList.remove('open');
       initApp();
@@ -1471,11 +1479,19 @@ function switchMitarbeiter() {
     btn.innerHTML = `
       <div class="mitarbeiter-avatar" style="background:${m.farbe}">${m.name[0]}</div>
       <div class="mitarbeiter-info">
-        <div class="mitarbeiter-name">${m.name}</div>
+        <div class="mitarbeiter-name">${m.name}${m.kannLoeschen ? ' 🔑' : ''}</div>
         <div class="mitarbeiter-rolle">${m.rolle}</div>
       </div>
     `;
     btn.onclick = () => {
+      if (m.kannLoeschen) {
+        const pw = prompt(`Chef-Passwort für ${m.name} eingeben:`);
+        if (pw === null) return;
+        if (pw !== CHEF_PASSWORT) {
+          showToast('⚠ Falsches Passwort', true);
+          return;
+        }
+      }
       setCurrentMitarbeiter(m);
       document.getElementById('mitarbeiterScreen').classList.remove('open');
     };
@@ -1978,19 +1994,13 @@ async function deleteEntry(id) {
   const r = data.find(x => x.id === id);
   if (!r) return;
 
-  // Prüfen ob aktueller Mitarbeiter löschen darf
+  // Nur Chef darf löschen (Button ist eh versteckt, aber sicherheitshalber)
   if (!currentMitarbeiter || !currentMitarbeiter.kannLoeschen) {
     showToast('⚠ Nur der Chef kann Felgen löschen', true);
     return;
   }
 
-  // Chef-Passwort abfragen
-  const pw = prompt(`Felge "${r.kz}" löschen?\n\nAchtung: Die gesamte Historie wird ebenfalls gelöscht.\n\nChef-Passwort eingeben:`);
-  if (pw === null) return; // Abbrechen
-  if (pw !== CHEF_PASSWORT) {
-    showToast('⚠ Falsches Passwort', true);
-    return;
-  }
+  if (!confirm(`Felge "${r.kz}" wirklich löschen?\n\nDie gesamte Historie wird ebenfalls gelöscht.`)) return;
 
   try {
     await deleteFromDb(id);
