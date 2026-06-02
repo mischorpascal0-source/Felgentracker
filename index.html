@@ -535,6 +535,90 @@
 
   .quick-edit-link:hover { border-color: var(--accent); }
 
+  /* HISTORIE MODAL */
+  .historie-modal {
+    width: 600px;
+    max-width: 100%;
+  }
+
+  .historie-search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 20px;
+  }
+
+  .historie-search:focus { border-color: var(--accent); }
+
+  .historie-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .historie-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .historie-item:last-child { border-bottom: none; }
+
+  .historie-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .historie-content { flex: 1; }
+
+  .historie-action {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .historie-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .historie-empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 30px;
+    font-size: 14px;
+  }
+
+  .historie-kz-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-right: 6px;
+  }
+
+  .action-btn.historie-btn:hover { border-color: var(--green); color: var(--green); }
+
   #labelPreview {
     background: #fff;
     color: #000;
@@ -980,6 +1064,7 @@
     </div>
     <span id="dateLabel" style="color:var(--muted)"></span>
     <button class="btn" onclick="openModal()">+ Neue Felge</button>
+    <button class="btn btn-ghost" onclick="openHistorie()" style="border-color:var(--green);color:var(--green)">📋 Historie</button>
     <button class="logout-btn" onclick="doLogout()">Abmelden</button>
   </div>
 </header>
@@ -1177,6 +1262,21 @@
 </div>
 
 <div id="printArea" style="display:none"></div>
+
+<!-- HISTORIE MODAL -->
+<div class="modal-overlay" id="historieOverlay" onclick="closeHistorieOnOverlay(event)">
+  <div class="modal historie-modal">
+    <div class="modal-title">📋 Änderungshistorie</div>
+    <input type="text" class="historie-search" id="historieSearch" placeholder="🔍  Kennzeichen oder Kunde suchen..." oninput="filterHistorie()">
+    <div class="historie-list" id="historieList">
+      <div class="historie-empty">Lade Historie...</div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeHistorie()">Schließen</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1404,6 +1504,96 @@ async function deleteFromDb(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HISTORIE
+// ═══════════════════════════════════════════════════════════════
+
+async function logHistorie(felgeId, kz, aktion) {
+  try {
+    await supa.from('historie').insert([{
+      felge_id: felgeId,
+      kz: kz,
+      aktion: aktion,
+      mitarbeiter: currentMitarbeiter ? currentMitarbeiter.name : 'Unbekannt',
+    }]);
+  } catch (e) {
+    console.error('Historie-Fehler:', e);
+  }
+}
+
+let alleHistorie = [];
+
+async function openHistorie(felgeId = null) {
+  document.getElementById('historieOverlay').classList.add('open');
+  document.getElementById('historieList').innerHTML = '<div class="historie-empty"><span class="loader"></span> Lade...</div>';
+  document.getElementById('historieSearch').value = '';
+
+  try {
+    let query = supa.from('historie').select('*').order('created_at', { ascending: false }).limit(200);
+
+    if (felgeId) {
+      query = query.eq('felge_id', felgeId);
+      // Suchfeld vorausfüllen
+      const r = data.find(x => x.id === felgeId);
+      if (r) document.getElementById('historieSearch').value = r.kz;
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw error;
+
+    alleHistorie = rows || [];
+    renderHistorie(alleHistorie);
+  } catch (e) {
+    document.getElementById('historieList').innerHTML = `<div class="historie-empty">⚠ Fehler: ${e.message}</div>`;
+  }
+}
+
+function filterHistorie() {
+  const q = document.getElementById('historieSearch').value.toLowerCase();
+  if (!q) {
+    renderHistorie(alleHistorie);
+    return;
+  }
+  const filtered = alleHistorie.filter(h =>
+    (h.kz && h.kz.toLowerCase().includes(q)) ||
+    (h.mitarbeiter && h.mitarbeiter.toLowerCase().includes(q)) ||
+    (h.aktion && h.aktion.toLowerCase().includes(q))
+  );
+  renderHistorie(filtered);
+}
+
+function renderHistorie(items) {
+  const list = document.getElementById('historieList');
+
+  if (!items.length) {
+    list.innerHTML = '<div class="historie-empty">Keine Einträge gefunden</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(h => {
+    const d = new Date(h.created_at);
+    const datum = d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const zeit = d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+    const farbe = getMitarbeiterFarbe(h.mitarbeiter);
+
+    return `
+      <div class="historie-item">
+        <div class="historie-avatar" style="background:${farbe}">${(h.mitarbeiter||'?')[0]}</div>
+        <div class="historie-content">
+          <div class="historie-action">
+            <span class="historie-kz-badge">${h.kz || '–'}</span>
+            ${h.aktion || '–'}
+          </div>
+          <div class="historie-meta">${h.mitarbeiter || 'Unbekannt'} · ${datum} um ${zeit}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function closeHistorie() { document.getElementById('historieOverlay').classList.remove('open'); }
+function closeHistorieOnOverlay(e) { if (e.target === document.getElementById('historieOverlay')) closeHistorie(); }
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 
@@ -1466,6 +1656,7 @@ function renderTable() {
         <div class="action-group">
           <button class="action-btn" onclick="openQuick(${r.id})">⚡ Status</button>
           <button class="action-btn" onclick="editEntry(${r.id})">✏️ Bearbeiten</button>
+          <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
           <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️ Label</button>
           <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
         </div>
@@ -1515,6 +1706,7 @@ function renderTable() {
       <div class="mobile-card-actions">
         <button class="action-btn" onclick="openQuick(${r.id})">⚡ Status</button>
         <button class="action-btn" onclick="editEntry(${r.id})">✏️</button>
+        <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
         <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️</button>
         <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
       </div>
@@ -1632,7 +1824,21 @@ async function saveEntry() {
   btn.innerHTML = '<span class="loader"></span> Speichern...';
 
   try {
-    await saveToDb(entry);
+    const result = await saveToDb(entry);
+
+    // Historie loggen
+    if (editId) {
+      const old = data.find(x => x.id === editId);
+      if (old && old.status !== selectedStatus) {
+        await logHistorie(editId, kz, `Status: ${statusLabels[old.status]} → ${statusLabels[selectedStatus]}`);
+      } else {
+        await logHistorie(editId, kz, 'Daten bearbeitet');
+      }
+    } else {
+      const newId = result ? result.id : null;
+      await logHistorie(newId, kz, 'Felge angenommen');
+    }
+
     showToast(editId ? '✓ Aktualisiert' : '✓ Felge angelegt');
     closeModal();
     await loadData();
@@ -1650,6 +1856,7 @@ async function deleteEntry(id) {
   if (!r) return;
   if (!confirm(`Felge "${r.kz}" wirklich löschen?`)) return;
   try {
+    await logHistorie(id, r.kz, 'Felge gelöscht');
     await deleteFromDb(id);
     showToast('✓ Gelöscht');
     await loadData();
@@ -1780,6 +1987,9 @@ async function quickChangeStatus(newStatus) {
       .eq('id', quickCurrentId);
 
     if (error) throw error;
+
+    // Historie loggen
+    await logHistorie(quickCurrentId, r.kz, `Status: ${statusLabels[r.status]} → ${statusLabels[newStatus]}`);
 
     showToast('✓ Status: ' + statusLabels[newStatus]);
     closeQuick();
