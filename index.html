@@ -1376,11 +1376,13 @@
 
 // Mitarbeiter-Liste – hier kannst du Mitarbeiter hinzufügen/entfernen
 const MITARBEITER = [
-  { name: 'Nick',    rolle: 'Chef',        farbe: '#e8c840' },
-  { name: 'Flo',     rolle: 'Mitarbeiter', farbe: '#4a9eff' },
-  { name: 'Nico',    rolle: 'Mitarbeiter', farbe: '#4caf7d' },
-  { name: 'Patrick', rolle: 'Mitarbeiter', farbe: '#ff9533' },
+  { name: 'Nick',    rolle: 'Chef',        farbe: '#e8c840', kannLoeschen: true },
+  { name: 'Flo',     rolle: 'Mitarbeiter', farbe: '#4a9eff', kannLoeschen: false },
+  { name: 'Nico',    rolle: 'Mitarbeiter', farbe: '#4caf7d', kannLoeschen: false },
+  { name: 'Patrick', rolle: 'Mitarbeiter', farbe: '#ff9533', kannLoeschen: false },
 ];
+
+const CHEF_PASSWORT = 'felgen2026';  // ← Hier Chef-Lösch-Passwort ändern!
 
 const SUPABASE_URL = 'https://jahqqmhvwparcjqkiqzv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphaHFxbWh2d3BhcmNqcWtpcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDg0NTQsImV4cCI6MjA5NTE4NDQ1NH0.f-vLcYHkw03yYwb7z8hk90Xpjcy5enAnDHMvRS9V5TM';
@@ -1779,7 +1781,7 @@ function renderTable() {
           <button class="action-btn" onclick="editEntry(${r.id})">✏️ Bearbeiten</button>
           <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
           <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️ Label</button>
-          <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
+          ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>` : ''}
         </div>
       </td>
     `;
@@ -1829,7 +1831,7 @@ function renderTable() {
         <button class="action-btn" onclick="editEntry(${r.id})">✏️</button>
         <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
         <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️</button>
-        <button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>
+        ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">🗑</button>` : ''}
       </div>
     `;
     cards.appendChild(card);
@@ -1975,9 +1977,22 @@ async function saveEntry() {
 async function deleteEntry(id) {
   const r = data.find(x => x.id === id);
   if (!r) return;
-  if (!confirm(`Felge "${r.kz}" wirklich löschen?`)) return;
+
+  // Prüfen ob aktueller Mitarbeiter löschen darf
+  if (!currentMitarbeiter || !currentMitarbeiter.kannLoeschen) {
+    showToast('⚠ Nur der Chef kann Felgen löschen', true);
+    return;
+  }
+
+  // Chef-Passwort abfragen
+  const pw = prompt(`Felge "${r.kz}" löschen?\n\nAchtung: Die gesamte Historie wird ebenfalls gelöscht.\n\nChef-Passwort eingeben:`);
+  if (pw === null) return; // Abbrechen
+  if (pw !== CHEF_PASSWORT) {
+    showToast('⚠ Falsches Passwort', true);
+    return;
+  }
+
   try {
-    await logHistorie(id, r.kz, 'Felge gelöscht');
     await deleteFromDb(id);
     showToast('✓ Gelöscht');
     await loadData();
