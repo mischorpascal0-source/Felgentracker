@@ -440,51 +440,59 @@
 
   .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-  /* CHECKBOXEN (Nabendeckel, Reifen) */
-  .checkbox-row {
+  /* JA/NEIN TOGGLE (Nabendeckel, Reifen) */
+  .toggle-row {
     display: flex;
     gap: 16px;
     margin-bottom: 16px;
   }
 
-  .checkbox-item {
+  .toggle-group {
     flex: 1;
+  }
+
+  .toggle-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .toggle-options {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface2);
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    flex: 1;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 10px;
     cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-  }
-
-  .checkbox-item:hover { border-color: var(--accent); }
-  .checkbox-item.checked { border-color: var(--accent); background: rgba(232,200,64,0.08); }
-
-  .checkbox-box {
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--border);
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 14px;
-    flex-shrink: 0;
+    font-weight: 600;
     transition: all 0.15s;
+    text-align: center;
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
   }
 
-  .checkbox-item.checked .checkbox-box {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
+  .toggle-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .toggle-btn.selected-ja {
+    border-color: var(--green);
+    background: rgba(76,175,125,0.12);
+    color: var(--green);
   }
 
-  .checkbox-label { font-size: 14px; color: var(--text); }
-  .checkbox-sublabel { font-size: 11px; color: var(--muted); }
+  .toggle-btn.selected-nein {
+    border-color: var(--red);
+    background: rgba(255,79,79,0.08);
+    color: var(--red);
+  }
 
   /* ARBEITSAUSWAHL */
   .arbeit-grid {
@@ -1319,7 +1327,8 @@
         <tr>
           <th>Kennzeichen</th>
           <th>Kunde</th>
-          <th>Notiz</th>
+          <th>Details</th>
+          <th>Arbeit</th>
           <th>Regal</th>
           <th>Status</th>
           <th>Eingang</th>
@@ -1346,6 +1355,25 @@
       <label>Kennzeichen *</label>
       <input type="text" id="inputKZ" placeholder="z.B. M-AB 1234" style="text-transform:uppercase">
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Zollgröße *</label>
+        <select id="inputZoll">
+          <option value="">– wählen –</option>
+          <option value="14">14 Zoll</option>
+          <option value="15">15 Zoll</option>
+          <option value="16">16 Zoll</option>
+          <option value="17">17 Zoll</option>
+          <option value="18">18 Zoll</option>
+          <option value="19">19 Zoll</option>
+          <option value="20">20 Zoll</option>
+          <option value="21">21 Zoll</option>
+          <option value="22">22 Zoll</option>
+          <option value="23">23 Zoll</option>
+          <option value="24">24 Zoll</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group">
       <label>Notiz <span id="notizPflicht" style="display:none;color:var(--red)">*</span></label>
       <input type="text" id="inputNotiz" placeholder="z.B. 4x Alufelge 18 Zoll, Kratzer">
@@ -1354,19 +1382,19 @@
     <hr class="divider">
     <div class="section-label">Auftragsdetails</div>
 
-    <div class="checkbox-row">
-      <div class="checkbox-item" id="checkNabendeckel" onclick="toggleCheckbox('checkNabendeckel')">
-        <div class="checkbox-box"></div>
-        <div>
-          <div class="checkbox-label">Nabendeckel</div>
-          <div class="checkbox-sublabel">Vorhanden?</div>
+    <div class="toggle-row">
+      <div class="toggle-group">
+        <label class="toggle-label">Nabendeckel *</label>
+        <div class="toggle-options" id="toggleNabendeckel">
+          <div class="toggle-btn" data-val="ja" onclick="selectToggle('toggleNabendeckel', 'ja')">✓ Ja</div>
+          <div class="toggle-btn" data-val="nein" onclick="selectToggle('toggleNabendeckel', 'nein')">✗ Nein</div>
         </div>
       </div>
-      <div class="checkbox-item" id="checkReifen" onclick="toggleCheckbox('checkReifen')">
-        <div class="checkbox-box"></div>
-        <div>
-          <div class="checkbox-label">Reifen</div>
-          <div class="checkbox-sublabel">Vorhanden?</div>
+      <div class="toggle-group">
+        <label class="toggle-label">Reifen *</label>
+        <div class="toggle-options" id="toggleReifen">
+          <div class="toggle-btn" data-val="ja" onclick="selectToggle('toggleReifen', 'ja')">✓ Ja</div>
+          <div class="toggle-btn" data-val="nein" onclick="selectToggle('toggleReifen', 'nein')">✗ Nein</div>
         </div>
       </div>
     </div>
@@ -1715,11 +1743,12 @@ async function loadData(silent = false) {
     data = (rows || []).map(r => ({
       id:    r.id,
       kz:    r.kz    || '',
+      zoll:  r.zoll  || '',
       name:  r.name  || '',
       tel:   r.tel   || '',
       notiz: r.notiz || '',
-      nabendeckel: r.nabendeckel || false,
-      reifen: r.reifen || false,
+      nabendeckel: r.nabendeckel === true || r.nabendeckel === 'ja',
+      reifen: r.reifen === true || r.reifen === 'ja',
       arbeit: r.arbeit || '',
       regal: r.regal || '',
       status: r.status || 'eingang',
@@ -1907,19 +1936,19 @@ function renderTable() {
     const tr = document.createElement('tr');
     tr.dataset.id = r.id;
     tr.innerHTML = `
-      <td><span class="kz">${r.kz}</span></td>
+      <td><span class="kz">${r.kz}</span>${r.zoll ? ` <span style="color:var(--muted);font-size:12px">${r.zoll}"</span>` : ''}</td>
       <td>
         <div class="customer-name">${r.name}</div>
         <div class="customer-phone">${r.tel || '–'}</div>
       </td>
       <td style="color:var(--muted);font-size:13px">
         ${r.notiz || '–'}
-        ${r.arbeit ? `<div class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</div>` : ''}
         <div class="detail-tags">
-          ${r.nabendeckel ? '<span class="mini-tag">Nabendeckel ✓</span>' : ''}
-          ${r.reifen ? '<span class="mini-tag">Reifen ✓</span>' : ''}
+          ${r.nabendeckel ? '<span class="mini-tag" style="background:rgba(76,175,125,0.1);color:var(--green);border-color:rgba(76,175,125,0.2)">Nabendeckel ✓</span>' : '<span class="mini-tag" style="background:rgba(255,79,79,0.08);color:var(--red);border-color:rgba(255,79,79,0.15)">Nabendeckel ✗</span>'}
+          ${r.reifen ? '<span class="mini-tag" style="background:rgba(76,175,125,0.1);color:var(--green);border-color:rgba(76,175,125,0.2)">Reifen ✓</span>' : '<span class="mini-tag" style="background:rgba(255,79,79,0.08);color:var(--red);border-color:rgba(255,79,79,0.15)">Reifen ✗</span>'}
         </div>
       </td>
+      <td>${r.arbeit ? `<span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span>` : '–'}</td>
       <td>${r.regal ? `<span class="regal-badge">🗄 Regal ${r.regal}</span>` : '<span style="color:var(--muted)">–</span>'}</td>
       <td>
         <span class="status ${r.status}">
@@ -1952,7 +1981,7 @@ function renderTable() {
     card.dataset.id = r.id;
     card.innerHTML = `
       <div class="mobile-card-top">
-        <span class="mobile-card-kz">${r.kz}</span>
+        <span class="mobile-card-kz">${r.kz}${r.zoll ? ` · ${r.zoll}"` : ''}</span>
         <span class="status ${r.status}">
           <span class="status-dot"></span>
           ${statusLabels[r.status]}
@@ -1982,11 +2011,14 @@ function renderTable() {
         <span class="label">Arbeit</span>
         <span class="value"><span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span></span>
       </div>` : ''}
-      ${r.nabendeckel || r.reifen ? `
       <div class="mobile-card-row">
-        <span class="label">Zubehör</span>
-        <span class="value">${r.nabendeckel ? 'Nabendeckel ✓' : ''} ${r.reifen ? 'Reifen ✓' : ''}</span>
-      </div>` : ''}
+        <span class="label">Nabendeckel</span>
+        <span class="value" style="color:${r.nabendeckel ? 'var(--green)' : 'var(--red)'}">${r.nabendeckel ? '✓ Ja' : '✗ Nein'}</span>
+      </div>
+      <div class="mobile-card-row">
+        <span class="label">Reifen</span>
+        <span class="value" style="color:${r.reifen ? 'var(--green)' : 'var(--red)'}">${r.reifen ? '✓ Ja' : '✗ Nein'}</span>
+      </div>
       ${r.geaendert_von ? `
       <div class="mobile-card-row">
         <span class="label">Zuletzt</span>
@@ -2051,19 +2083,21 @@ function openModal(id=null) {
     const r = data.find(x => x.id === id);
     if (!r) return;
     document.getElementById('inputKZ').value    = r.kz;
+    document.getElementById('inputZoll').value  = r.zoll;
     document.getElementById('inputNotiz').value = r.notiz;
     document.getElementById('inputName').value  = r.name;
     document.getElementById('inputTel').value   = r.tel;
     document.getElementById('inputRegal').value = r.regal;
-    setCheckbox('checkNabendeckel', r.nabendeckel);
-    setCheckbox('checkReifen', r.reifen);
+    setToggleFromBool('toggleNabendeckel', r.nabendeckel);
+    setToggleFromBool('toggleReifen', r.reifen);
     selectArbeitByVal(r.arbeit);
     selectStatusByVal(r.status);
   } else {
     ['inputKZ','inputNotiz','inputName','inputTel'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('inputZoll').value='';
     document.getElementById('inputRegal').value='';
-    setCheckbox('checkNabendeckel', false);
-    setCheckbox('checkReifen', false);
+    resetToggle('toggleNabendeckel');
+    resetToggle('toggleReifen');
     selectArbeitByVal('');
     selectStatusByVal('eingang');
   }
@@ -2092,25 +2126,35 @@ function selectStatusByVal(val) {
   selectedStatus = val;
 }
 
-// ── Checkbox Toggle ──
-function toggleCheckbox(id) {
-  const el = document.getElementById(id);
-  el.classList.toggle('checked');
-  if (el.classList.contains('checked')) {
-    el.querySelector('.checkbox-box').textContent = '✓';
-  } else {
-    el.querySelector('.checkbox-box').textContent = '';
-  }
+// ── Ja/Nein Toggle ──
+function selectToggle(groupId, val) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.toggle-btn').forEach(b => {
+    b.classList.remove('selected-ja', 'selected-nein');
+    if (b.dataset.val === val) {
+      b.classList.add(val === 'ja' ? 'selected-ja' : 'selected-nein');
+    }
+  });
+  group.dataset.selected = val;
 }
 
-function setCheckbox(id, val) {
-  const el = document.getElementById(id);
-  if (val) {
-    el.classList.add('checked');
-    el.querySelector('.checkbox-box').textContent = '✓';
+function getToggleVal(groupId) {
+  return document.getElementById(groupId).dataset.selected || '';
+}
+
+function resetToggle(groupId) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected-ja', 'selected-nein'));
+  group.dataset.selected = '';
+}
+
+function setToggleFromBool(groupId, val) {
+  if (val === true || val === 'ja') {
+    selectToggle(groupId, 'ja');
+  } else if (val === false || val === 'nein') {
+    selectToggle(groupId, 'nein');
   } else {
-    el.classList.remove('checked');
-    el.querySelector('.checkbox-box').textContent = '';
+    resetToggle(groupId);
   }
 }
 
@@ -2149,6 +2193,7 @@ async function saveEntry() {
   const kz   = document.getElementById('inputKZ').value.trim().toUpperCase();
   const name = document.getElementById('inputName').value.trim();
   const notiz = document.getElementById('inputNotiz').value.trim();
+  const zoll = document.getElementById('inputZoll').value;
   const highlight = id => {
     const el = document.getElementById(id);
     el.style.borderColor='var(--red)';
@@ -2161,19 +2206,25 @@ async function saveEntry() {
     });
   };
 
+  const nabendeckelVal = getToggleVal('toggleNabendeckel');
+  const reifenVal = getToggleVal('toggleReifen');
+
   let valid = true;
   if (!kz)   { highlight('inputKZ'); valid = false; }
   if (!name) { highlight('inputName'); valid = false; }
+  if (!zoll) { highlight('inputZoll'); valid = false; }
   if (!selectedArbeit) { highlightGrid('.arbeit-option'); valid = false; }
   if (selectedArbeit === 'siehe_notiz' && !notiz) { highlight('inputNotiz'); valid = false; }
+  if (!nabendeckelVal) { highlightGrid('#toggleNabendeckel .toggle-btn'); valid = false; }
+  if (!reifenVal) { highlightGrid('#toggleReifen .toggle-btn'); valid = false; }
   if (!valid) return;
 
   const entry = {
-    kz, name,
+    kz, name, zoll,
     tel:   document.getElementById('inputTel').value.trim(),
     notiz: notiz,
-    nabendeckel: document.getElementById('checkNabendeckel').classList.contains('checked'),
-    reifen: document.getElementById('checkReifen').classList.contains('checked'),
+    nabendeckel: nabendeckelVal === 'ja',
+    reifen: reifenVal === 'ja',
     arbeit: selectedArbeit,
     regal: document.getElementById('inputRegal').value,
     status: selectedStatus,
@@ -2249,11 +2300,12 @@ function openLabelModal(id) {
       <div class="label-info">
         <div class="label-kz">${r.kz}</div>
         <div class="label-row"><strong>Kunde:</strong> ${r.name}</div>
+        <div class="label-row"><strong>Zoll:</strong> ${r.zoll ? r.zoll + '"' : '–'}</div>
         <div class="label-row"><strong>Telefon:</strong> ${r.tel||'–'}</div>
         <div class="label-row"><strong>Regal:</strong> ${r.regal?'Regal '+r.regal:'–'}</div>
         <div class="label-row"><strong>Arbeit:</strong> ${arbeitLabels[r.arbeit] || '–'}</div>
         <div class="label-row"><strong>Notiz:</strong> ${r.notiz||'–'}</div>
-        <div class="label-row"><strong>Zubehör:</strong> ${[r.nabendeckel ? 'Nabendeckel' : '', r.reifen ? 'Reifen' : ''].filter(Boolean).join(', ') || '–'}</div>
+        <div class="label-row"><strong>Zubehör:</strong> Nabendeckel: ${r.nabendeckel ? 'Ja' : 'Nein'} | Reifen: ${r.reifen ? 'Ja' : 'Nein'}</div>
         <div class="label-row"><strong>Eingang:</strong> ${r.datum}</div>
         <div class="label-row"><strong>ID:</strong> ${r.id}</div>
       </div>
@@ -2295,11 +2347,12 @@ function openQuick(id) {
   document.getElementById('quickName').textContent = r.name;
 
   const details = [
+    r.zoll ? r.zoll + ' Zoll' : null,
     r.tel,
     r.regal ? `Regal ${r.regal}` : null,
     r.arbeit ? arbeitLabels[r.arbeit] : null,
-    r.nabendeckel ? 'Nabendeckel ✓' : null,
-    r.reifen ? 'Reifen ✓' : null,
+    r.nabendeckel ? 'Nabendeckel: Ja' : 'Nabendeckel: Nein',
+    r.reifen ? 'Reifen: Ja' : 'Reifen: Nein',
     r.notiz
   ].filter(Boolean).join(' · ');
   document.getElementById('quickDetails').textContent = details || '–';
