@@ -440,6 +440,108 @@
 
   .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
+  /* CHECKBOXEN (Nabendeckel, Reifen) */
+  .checkbox-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .checkbox-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .checkbox-item:hover { border-color: var(--accent); }
+  .checkbox-item.checked { border-color: var(--accent); background: rgba(232,200,64,0.08); }
+
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .checkbox-item.checked .checkbox-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .checkbox-label { font-size: 14px; color: var(--text); }
+  .checkbox-sublabel { font-size: 11px; color: var(--muted); }
+
+  /* ARBEITSAUSWAHL */
+  .arbeit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .arbeit-option {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    color: var(--muted);
+    text-align: center;
+    justify-content: center;
+  }
+
+  .arbeit-option:hover { border-color: var(--accent); color: var(--text); }
+  .arbeit-option.selected { border-color: var(--accent); background: rgba(232,200,64,0.08); color: var(--text); }
+
+  /* ARBEIT-BADGE in Tabelle */
+  .arbeit-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(232,200,64,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(232,200,64,0.2);
+    margin-top: 3px;
+  }
+
+  .detail-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .mini-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(74,158,255,0.1);
+    color: var(--blue);
+    border: 1px solid rgba(74,158,255,0.2);
+  }
+
   .status-option {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1245,8 +1347,38 @@
       <input type="text" id="inputKZ" placeholder="z.B. M-AB 1234" style="text-transform:uppercase">
     </div>
     <div class="form-group">
-      <label>Notiz (optional)</label>
+      <label>Notiz <span id="notizPflicht" style="display:none;color:var(--red)">*</span></label>
       <input type="text" id="inputNotiz" placeholder="z.B. 4x Alufelge 18 Zoll, Kratzer">
+    </div>
+
+    <hr class="divider">
+    <div class="section-label">Auftragsdetails</div>
+
+    <div class="checkbox-row">
+      <div class="checkbox-item" id="checkNabendeckel" onclick="toggleCheckbox('checkNabendeckel')">
+        <div class="checkbox-box"></div>
+        <div>
+          <div class="checkbox-label">Nabendeckel</div>
+          <div class="checkbox-sublabel">Vorhanden?</div>
+        </div>
+      </div>
+      <div class="checkbox-item" id="checkReifen" onclick="toggleCheckbox('checkReifen')">
+        <div class="checkbox-box"></div>
+        <div>
+          <div class="checkbox-label">Reifen</div>
+          <div class="checkbox-sublabel">Vorhanden?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Verrichtende Arbeit *</label>
+      <div class="arbeit-grid">
+        <div class="arbeit-option" data-val="glanzgedreht" onclick="selectArbeit(this)">✨ Glanzgedreht</div>
+        <div class="arbeit-option" data-val="normal_lack" onclick="selectArbeit(this)">🎨 Normal Lack</div>
+        <div class="arbeit-option" data-val="richten" onclick="selectArbeit(this)">🔧 Richten</div>
+        <div class="arbeit-option" data-val="siehe_notiz" onclick="selectArbeit(this)">📝 Siehe Notizen</div>
+      </div>
     </div>
 
     <hr class="divider">
@@ -1586,6 +1718,9 @@ async function loadData(silent = false) {
       name:  r.name  || '',
       tel:   r.tel   || '',
       notiz: r.notiz || '',
+      nabendeckel: r.nabendeckel || false,
+      reifen: r.reifen || false,
+      arbeit: r.arbeit || '',
       regal: r.regal || '',
       status: r.status || 'eingang',
       datum: r.datum || new Date(r.created_at).toLocaleDateString('de-DE'),
@@ -1777,7 +1912,14 @@ function renderTable() {
         <div class="customer-name">${r.name}</div>
         <div class="customer-phone">${r.tel || '–'}</div>
       </td>
-      <td style="color:var(--muted);font-size:13px">${r.notiz || '–'}</td>
+      <td style="color:var(--muted);font-size:13px">
+        ${r.notiz || '–'}
+        ${r.arbeit ? `<div class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</div>` : ''}
+        <div class="detail-tags">
+          ${r.nabendeckel ? '<span class="mini-tag">Nabendeckel ✓</span>' : ''}
+          ${r.reifen ? '<span class="mini-tag">Reifen ✓</span>' : ''}
+        </div>
+      </td>
       <td>${r.regal ? `<span class="regal-badge">🗄 Regal ${r.regal}</span>` : '<span style="color:var(--muted)">–</span>'}</td>
       <td>
         <span class="status ${r.status}">
@@ -1834,6 +1976,16 @@ function renderTable() {
       <div class="mobile-card-row">
         <span class="label">Notiz</span>
         <span class="value" style="text-align:right;max-width:60%">${r.notiz}</span>
+      </div>` : ''}
+      ${r.arbeit ? `
+      <div class="mobile-card-row">
+        <span class="label">Arbeit</span>
+        <span class="value"><span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span></span>
+      </div>` : ''}
+      ${r.nabendeckel || r.reifen ? `
+      <div class="mobile-card-row">
+        <span class="label">Zubehör</span>
+        <span class="value">${r.nabendeckel ? 'Nabendeckel ✓' : ''} ${r.reifen ? 'Reifen ✓' : ''}</span>
       </div>` : ''}
       ${r.geaendert_von ? `
       <div class="mobile-card-row">
@@ -1903,10 +2055,16 @@ function openModal(id=null) {
     document.getElementById('inputName').value  = r.name;
     document.getElementById('inputTel').value   = r.tel;
     document.getElementById('inputRegal').value = r.regal;
+    setCheckbox('checkNabendeckel', r.nabendeckel);
+    setCheckbox('checkReifen', r.reifen);
+    selectArbeitByVal(r.arbeit);
     selectStatusByVal(r.status);
   } else {
     ['inputKZ','inputNotiz','inputName','inputTel'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('inputRegal').value='';
+    setCheckbox('checkNabendeckel', false);
+    setCheckbox('checkReifen', false);
+    selectArbeitByVal('');
     selectStatusByVal('eingang');
   }
   document.getElementById('modalOverlay').classList.add('open');
@@ -1934,24 +2092,89 @@ function selectStatusByVal(val) {
   selectedStatus = val;
 }
 
+// ── Checkbox Toggle ──
+function toggleCheckbox(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('checked');
+  if (el.classList.contains('checked')) {
+    el.querySelector('.checkbox-box').textContent = '✓';
+  } else {
+    el.querySelector('.checkbox-box').textContent = '';
+  }
+}
+
+function setCheckbox(id, val) {
+  const el = document.getElementById(id);
+  if (val) {
+    el.classList.add('checked');
+    el.querySelector('.checkbox-box').textContent = '✓';
+  } else {
+    el.classList.remove('checked');
+    el.querySelector('.checkbox-box').textContent = '';
+  }
+}
+
+// ── Arbeitsauswahl ──
+let selectedArbeit = '';
+
+function selectArbeit(el) {
+  document.querySelectorAll('.arbeit-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedArbeit = el.dataset.val;
+
+  // Notiz als Pflichtfeld wenn "Siehe Notizen" gewählt
+  const pflicht = document.getElementById('notizPflicht');
+  if (selectedArbeit === 'siehe_notiz') {
+    pflicht.style.display = 'inline';
+  } else {
+    pflicht.style.display = 'none';
+  }
+}
+
+function selectArbeitByVal(val) {
+  document.querySelectorAll('.arbeit-option').forEach(o => o.classList.toggle('selected', o.dataset.val === val));
+  selectedArbeit = val || '';
+  const pflicht = document.getElementById('notizPflicht');
+  if (pflicht) pflicht.style.display = (val === 'siehe_notiz') ? 'inline' : 'none';
+}
+
+const arbeitLabels = {
+  glanzgedreht: 'Glanzgedreht',
+  normal_lack:  'Normal Lack',
+  richten:      'Richten',
+  siehe_notiz:  'Siehe Notizen',
+};
+
 async function saveEntry() {
   const kz   = document.getElementById('inputKZ').value.trim().toUpperCase();
   const name = document.getElementById('inputName').value.trim();
+  const notiz = document.getElementById('inputNotiz').value.trim();
   const highlight = id => {
     const el = document.getElementById(id);
     el.style.borderColor='var(--red)';
     setTimeout(()=>el.style.borderColor='',1500);
   };
-  if (!kz || !name) {
-    if(!kz)   highlight('inputKZ');
-    if(!name) highlight('inputName');
-    return;
-  }
+  const highlightGrid = cls => {
+    document.querySelectorAll(cls).forEach(el => {
+      el.style.borderColor='var(--red)';
+      setTimeout(()=>el.style.borderColor='',1500);
+    });
+  };
+
+  let valid = true;
+  if (!kz)   { highlight('inputKZ'); valid = false; }
+  if (!name) { highlight('inputName'); valid = false; }
+  if (!selectedArbeit) { highlightGrid('.arbeit-option'); valid = false; }
+  if (selectedArbeit === 'siehe_notiz' && !notiz) { highlight('inputNotiz'); valid = false; }
+  if (!valid) return;
 
   const entry = {
     kz, name,
     tel:   document.getElementById('inputTel').value.trim(),
-    notiz: document.getElementById('inputNotiz').value.trim(),
+    notiz: notiz,
+    nabendeckel: document.getElementById('checkNabendeckel').classList.contains('checked'),
+    reifen: document.getElementById('checkReifen').classList.contains('checked'),
+    arbeit: selectedArbeit,
     regal: document.getElementById('inputRegal').value,
     status: selectedStatus,
     datum: new Date().toLocaleDateString('de-DE'),
@@ -2028,7 +2251,9 @@ function openLabelModal(id) {
         <div class="label-row"><strong>Kunde:</strong> ${r.name}</div>
         <div class="label-row"><strong>Telefon:</strong> ${r.tel||'–'}</div>
         <div class="label-row"><strong>Regal:</strong> ${r.regal?'Regal '+r.regal:'–'}</div>
+        <div class="label-row"><strong>Arbeit:</strong> ${arbeitLabels[r.arbeit] || '–'}</div>
         <div class="label-row"><strong>Notiz:</strong> ${r.notiz||'–'}</div>
+        <div class="label-row"><strong>Zubehör:</strong> ${[r.nabendeckel ? 'Nabendeckel' : '', r.reifen ? 'Reifen' : ''].filter(Boolean).join(', ') || '–'}</div>
         <div class="label-row"><strong>Eingang:</strong> ${r.datum}</div>
         <div class="label-row"><strong>ID:</strong> ${r.id}</div>
       </div>
@@ -2072,6 +2297,9 @@ function openQuick(id) {
   const details = [
     r.tel,
     r.regal ? `Regal ${r.regal}` : null,
+    r.arbeit ? arbeitLabels[r.arbeit] : null,
+    r.nabendeckel ? 'Nabendeckel ✓' : null,
+    r.reifen ? 'Reifen ✓' : null,
     r.notiz
   ].filter(Boolean).join(' · ');
   document.getElementById('quickDetails').textContent = details || '–';
