@@ -812,6 +812,139 @@
   }
 
   .action-btn.historie-btn:hover { border-color: var(--green); color: var(--green); }
+  .action-btn.beleg-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* A4 KUNDENBELEG */
+  .beleg-modal { width: 700px; max-width: 100%; }
+
+  #belegPreview {
+    background: #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 40px;
+    margin-bottom: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .beleg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #000;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+
+  .beleg-firma {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: #000;
+  }
+
+  .beleg-firma-sub {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  .beleg-titel {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: #333;
+    text-align: right;
+  }
+
+  .beleg-datum {
+    font-size: 13px;
+    color: #666;
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  .beleg-section {
+    margin-bottom: 20px;
+  }
+
+  .beleg-section-title {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #999;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+  }
+
+  .beleg-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .beleg-table td {
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+  }
+
+  .beleg-table td:first-child {
+    font-weight: 600;
+    color: #555;
+    width: 160px;
+  }
+
+  .beleg-table td:last-child { color: #000; }
+
+  .beleg-kz {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: #000;
+  }
+
+  .beleg-hinweis {
+    background: #f8f8f8;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+    margin-top: 20px;
+  }
+
+  .beleg-unterschrift {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-top: 10px;
+  }
+
+  .beleg-sig-line {
+    width: 220px;
+    text-align: center;
+  }
+
+  .beleg-sig-line div:first-child {
+    border-top: 1px solid #000;
+    padding-top: 6px;
+    font-size: 12px;
+    color: #666;
+  }
+
+  .beleg-footer-text {
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
 
   #labelPreview {
     background: #fff;
@@ -1527,6 +1660,21 @@
   </div>
 </div>
 
+<!-- KUNDENBELEG MODAL -->
+<div class="modal-overlay" id="belegOverlay" onclick="closeBelegOnOverlay(event)">
+  <div class="modal beleg-modal">
+    <div class="modal-title">📄 Kundenbeleg (A4)</div>
+    <div id="belegPreview"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      💡 Im Druckdialog "A4" und "Ränder: Minimal" wählen.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeBeleg()">Schließen</button>
+      <button class="btn" onclick="printBeleg()">🖨️ Beleg drucken</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1887,6 +2035,108 @@ function closeHistorie() { document.getElementById('historieOverlay').classList.
 function closeHistorieOnOverlay(e) { if (e.target === document.getElementById('historieOverlay')) closeHistorie(); }
 
 // ═══════════════════════════════════════════════════════════════
+// KUNDENBELEG (A4)
+// ═══════════════════════════════════════════════════════════════
+
+function openBeleg(id) {
+  const r = data.find(x => x.id === id);
+  if (!r) return;
+
+  const heute = new Date().toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  document.getElementById('belegPreview').innerHTML = `
+    <div class="beleg-header">
+      <div>
+        <div class="beleg-firma">FelgenTrack</div>
+        <div class="beleg-firma-sub">Felgeninstandsetzung</div>
+      </div>
+      <div>
+        <div class="beleg-titel">Auftragsbestätigung</div>
+        <div class="beleg-datum">Datum: ${heute}</div>
+      </div>
+    </div>
+
+    <div class="beleg-section">
+      <div class="beleg-section-title">Fahrzeug</div>
+      <table class="beleg-table">
+        <tr><td>Kennzeichen</td><td><span class="beleg-kz">${r.kz}</span></td></tr>
+        <tr><td>Zollgröße</td><td>${r.zoll ? r.zoll + ' Zoll' : '–'}</td></tr>
+      </table>
+    </div>
+
+    <div class="beleg-section">
+      <div class="beleg-section-title">Kundendaten</div>
+      <table class="beleg-table">
+        <tr><td>Name</td><td>${r.name}</td></tr>
+        <tr><td>Telefon</td><td>${r.tel || '–'}</td></tr>
+      </table>
+    </div>
+
+    <div class="beleg-section">
+      <div class="beleg-section-title">Auftragsdetails</div>
+      <table class="beleg-table">
+        <tr><td>Verrichtende Arbeit</td><td><strong>${arbeitLabels[r.arbeit] || '–'}</strong></td></tr>
+        <tr><td>Nabendeckel</td><td>${r.nabendeckel ? '✓ Ja' : '✗ Nein'}</td></tr>
+        <tr><td>Reifen</td><td>${r.reifen ? '✓ Ja' : '✗ Nein'}</td></tr>
+        <tr><td>Lagerort</td><td>${r.regal ? 'Regal ' + r.regal : '–'}</td></tr>
+        ${r.notiz ? `<tr><td>Notiz</td><td>${r.notiz}</td></tr>` : ''}
+        <tr><td>Eingangsdatum</td><td>${r.datum}</td></tr>
+        <tr><td>Status</td><td>${statusLabels[r.status]}</td></tr>
+      </table>
+    </div>
+
+    <div class="beleg-hinweis">
+      <strong>Hinweis:</strong> Bitte bewahren Sie diesen Beleg bis zur Abholung auf. Die Abholung erfolgt nach telefonischer Benachrichtigung. Bei Rückfragen erreichen Sie uns unter der angegebenen Nummer.
+    </div>
+
+    <div class="beleg-unterschrift">
+      <div class="beleg-sig-line">
+        <div>Datum, Unterschrift Kunde</div>
+      </div>
+      <div class="beleg-sig-line">
+        <div>Datum, Unterschrift Betrieb</div>
+      </div>
+    </div>
+
+    <div class="beleg-footer-text">
+      Vielen Dank für Ihren Auftrag!
+    </div>
+  `;
+
+  document.getElementById('belegOverlay').classList.add('open');
+}
+
+function closeBeleg() { document.getElementById('belegOverlay').classList.remove('open'); }
+function closeBelegOnOverlay(e) { if (e.target === document.getElementById('belegOverlay')) closeBeleg(); }
+
+function printBeleg() {
+  const content = document.getElementById('belegPreview').innerHTML;
+  const pa = document.getElementById('printArea');
+  pa.innerHTML = `<style>
+    body { font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.6; color: #000; }
+    .beleg-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #000; padding-bottom: 16px; margin-bottom: 24px; }
+    .beleg-firma { font-size: 28px; font-weight: 900; letter-spacing: 2px; }
+    .beleg-firma-sub { font-size: 12px; color: #666; margin-top: 2px; }
+    .beleg-titel { font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #333; text-align: right; }
+    .beleg-datum { font-size: 13px; color: #666; text-align: right; margin-top: 4px; }
+    .beleg-section { margin-bottom: 20px; }
+    .beleg-section-title { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+    .beleg-table { width: 100%; border-collapse: collapse; }
+    .beleg-table td { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .beleg-table td:first-child { font-weight: 600; color: #555; width: 160px; }
+    .beleg-kz { font-size: 28px; font-weight: 900; letter-spacing: 3px; }
+    .beleg-hinweis { background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 14px; font-size: 12px; color: #666; line-height: 1.6; margin-top: 20px; }
+    .beleg-unterschrift { display: flex; justify-content: space-between; margin-top: 50px; }
+    .beleg-sig-line { width: 220px; text-align: center; }
+    .beleg-sig-line div:first-child { border-top: 1px solid #000; padding-top: 6px; font-size: 12px; color: #666; }
+    .beleg-footer-text { text-align: center; font-size: 11px; color: #aaa; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; }
+  </style>${content}`;
+  pa.style.display = 'block';
+  window.print();
+  setTimeout(() => pa.style.display = 'none', 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 
@@ -1969,6 +2219,7 @@ function renderTable() {
           <button class="action-btn" onclick="editEntry(${r.id})">✏️ Bearbeiten</button>
           <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
           <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️ Label</button>
+          <button class="action-btn beleg-btn" onclick="openBeleg(${r.id})">📄 Beleg</button>
           ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">Löschen</button>` : ''}
         </div>
       </td>
@@ -2032,6 +2283,7 @@ function renderTable() {
         <button class="action-btn" onclick="editEntry(${r.id})">✏️</button>
         <button class="action-btn historie-btn" onclick="openHistorie(${r.id})">📋</button>
         <button class="action-btn print-btn" onclick="openLabelModal(${r.id})">🏷️</button>
+        <button class="action-btn beleg-btn" onclick="openBeleg(${r.id})">📄</button>
         ${currentMitarbeiter && currentMitarbeiter.kannLoeschen ? `<button class="action-btn delete-btn" onclick="deleteEntry(${r.id})">Löschen</button>` : ''}
       </div>
     `;
@@ -2307,7 +2559,6 @@ function openLabelModal(id) {
         <div class="label-row"><strong>Notiz:</strong> ${r.notiz||'–'}</div>
         <div class="label-row"><strong>Zubehör:</strong> Nabendeckel: ${r.nabendeckel ? 'Ja' : 'Nein'} | Reifen: ${r.reifen ? 'Ja' : 'Nein'}</div>
         <div class="label-row"><strong>Eingang:</strong> ${r.datum}</div>
-        <div class="label-row"><strong>ID:</strong> ${r.id}</div>
       </div>
     </div>
     <div class="label-footer">FelgenTrack · QR-Code scannen zum Status-Update</div>
