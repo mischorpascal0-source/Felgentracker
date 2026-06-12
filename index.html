@@ -662,7 +662,7 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
   .modal-actions .btn { flex: 1; text-align: center; }
 
-  .label-modal { width: 420px; }
+  .label-modal { width: 480px; }
 
   /* QUICK STATUS MODAL (Tablet-Modus) */
   .quick-modal {
@@ -1041,35 +1041,111 @@
     background: #fff;
     color: #000;
     border-radius: 8px;
-    padding: 20px;
+    padding: 10px;
     margin-bottom: 20px;
     font-family: 'DM Sans', sans-serif;
   }
 
-  .label-inner { display: flex; gap: 16px; align-items: flex-start; }
-  .label-qr { flex-shrink: 0; }
+  .label-outer {
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+    aspect-ratio: 102 / 210;
+    border: 1px dashed #ccc;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .label-firma {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: #000;
+  }
 
   .label-kz {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    letter-spacing: 2px;
+    font-size: 38px;
+    letter-spacing: 4px;
     color: #000;
+    text-align: center;
     line-height: 1;
-    margin-bottom: 6px;
-    border-bottom: 2px solid #000;
-    padding-bottom: 6px;
+    margin: 8px 0 4px;
   }
 
-  .label-row { font-size: 13px; color: #222; margin-bottom: 3px; display: flex; gap: 6px; }
-  .label-row strong { font-weight: 600; min-width: 70px; display: inline-block; }
+  .label-zoll {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #444;
+    margin-bottom: 8px;
+  }
+
+  .label-qr-center {
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .label-details { flex: 1; }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #222;
+    padding: 3px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .label-row-key { font-weight: 700; color: #555; }
+  .label-row-val { text-align: right; font-weight: 500; color: #000; }
+
+  .label-arbeit {
+    text-align: center;
+    margin: 8px 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #000;
+    padding: 6px;
+    border: 2px solid #000;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .label-tags {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 6px 0;
+  }
+
+  .label-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+  }
+
+  .label-tag.ja { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+  .label-tag.nein { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
 
   .label-footer {
-    margin-top: 10px;
-    font-size: 11px;
-    color: #888;
-    border-top: 1px solid #ddd;
-    padding-top: 8px;
     text-align: center;
+    font-size: 9px;
+    color: #999;
+    border-top: 1px solid #ddd;
+    padding-top: 5px;
+    margin-top: auto;
   }
 
   /* LOGIN SCREEN */
@@ -1206,8 +1282,7 @@
 
   @media print {
     body > *:not(#printArea) { display: none !important; }
-    #printArea { display: block !important; position: fixed; inset: 0; background: #fff; padding: 20px; }
-    #printArea .label-inner { display: flex; gap: 16px; }
+    #printArea { display: block !important; position: fixed; inset: 0; background: #fff; padding: 0; margin: 0; }
   }
 
   /* MITARBEITER-AUSWAHL */
@@ -2638,26 +2713,38 @@ function openLabelModal(id) {
   if (!r) return;
   const qrUrl = window.location.href.split('?')[0]+'?id='+r.id;
   document.getElementById('labelPreview').innerHTML = `
-    <div class="label-inner">
-      <div class="label-qr" id="qrContainer"></div>
-      <div class="label-info">
-        <div class="label-kz">${r.kz}</div>
-        <div class="label-row"><strong>Kunde:</strong> ${r.name}</div>
-        <div class="label-row"><strong>Zoll:</strong> ${r.zoll ? r.zoll + '"' : '–'}</div>
-        <div class="label-row"><strong>Telefon:</strong> ${r.tel||'–'}</div>
-        <div class="label-row"><strong>Regal:</strong> ${r.regal?'Regal '+r.regal:'–'}</div>
-        <div class="label-row"><strong>Arbeit:</strong> ${arbeitLabels[r.arbeit] || '–'}</div>
-        <div class="label-row"><strong>Notiz:</strong> ${r.notiz||'–'}</div>
-        <div class="label-row"><strong>Zubehör:</strong> Nabendeckel: ${r.nabendeckel ? 'Ja' : 'Nein'} | Reifen: ${r.reifen ? 'Ja' : 'Nein'}</div>
-        <div class="label-row"><strong>Eingang:</strong> ${r.datum}</div>
+    <div class="label-outer">
+      <div class="label-header">
+        <div class="label-firma">Felgenservice Chemnitz</div>
       </div>
+
+      <div class="label-kz">${r.kz}</div>
+      <div class="label-zoll">${r.zoll ? r.zoll + ' Zoll' : ''}</div>
+
+      <div class="label-arbeit">${arbeitLabels[r.arbeit] || '–'}</div>
+
+      <div class="label-qr-center" id="qrContainer"></div>
+
+      <div class="label-details">
+        <div class="label-row"><span class="label-row-key">Kunde</span><span class="label-row-val">${r.name}</span></div>
+        <div class="label-row"><span class="label-row-key">Telefon</span><span class="label-row-val">${r.tel||'–'}</span></div>
+        <div class="label-row"><span class="label-row-key">Regal</span><span class="label-row-val">${r.regal?'Regal '+r.regal:'–'}</span></div>
+        <div class="label-row"><span class="label-row-key">Eingang</span><span class="label-row-val">${r.datum}</span></div>
+        ${r.notiz ? `<div class="label-row"><span class="label-row-key">Notiz</span><span class="label-row-val">${r.notiz}</span></div>` : ''}
+      </div>
+
+      <div class="label-tags">
+        <span class="label-tag ${r.nabendeckel ? 'ja' : 'nein'}">Nabendeckel: ${r.nabendeckel ? 'Ja' : 'Nein'}</span>
+        <span class="label-tag ${r.reifen ? 'ja' : 'nein'}">Reifen: ${r.reifen ? 'Ja' : 'Nein'}</span>
+      </div>
+
+      <div class="label-footer">QR-Code scannen zum Status-Update · FelgenTrack</div>
     </div>
-    <div class="label-footer">FelgenTrack · QR-Code scannen zum Status-Update</div>
   `;
   try {
-    new QRCode(document.getElementById('qrContainer'), { text:qrUrl, width:100, height:100, colorDark:'#000000', colorLight:'#ffffff' });
+    new QRCode(document.getElementById('qrContainer'), { text:qrUrl, width:140, height:140, colorDark:'#000000', colorLight:'#ffffff' });
   } catch(e) {
-    document.getElementById('qrContainer').innerHTML='<div style="width:100px;height:100px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;border-radius:4px;text-align:center;padding:8px">QR-Code<br>(benötigt<br>Internet)</div>';
+    document.getElementById('qrContainer').innerHTML='<div style="width:140px;height:140px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:10px;color:#666;border-radius:4px;text-align:center;padding:8px">QR-Code<br>(benötigt<br>Internet)</div>';
   }
   document.getElementById('labelModalOverlay').classList.add('open');
 }
@@ -2668,10 +2755,28 @@ function closeLabelOnOverlay(e) { if(e.target===document.getElementById('labelMo
 function printLabel() {
   const content = document.getElementById('labelPreview').innerHTML;
   const pa = document.getElementById('printArea');
-  pa.innerHTML = `<style>body{font-family:'DM Sans',sans-serif}.label-inner{display:flex;gap:16px;align-items:flex-start;padding:16px}.label-kz{font-size:32px;font-weight:900;letter-spacing:2px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px}.label-row{font-size:13px;margin-bottom:3px;display:flex;gap:6px}.label-row strong{display:inline-block;min-width:70px}.label-footer{font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center;margin:10px 16px 0}</style>${content}`;
-  pa.style.display='block';
+  pa.innerHTML = `<style>
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    .label-outer { width: 102mm; height: 210mm; padding: 6mm 5mm; display: flex; flex-direction: column; box-sizing: border-box; }
+    .label-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+    .label-firma { font-size: 14pt; font-weight: 900; letter-spacing: 2px; }
+    .label-kz { font-size: 32pt; font-weight: 900; letter-spacing: 4px; text-align: center; line-height: 1; margin: 3mm 0 1mm; }
+    .label-zoll { text-align: center; font-size: 14pt; font-weight: 700; color: #444; margin-bottom: 3mm; }
+    .label-arbeit { text-align: center; font-size: 13pt; font-weight: 800; border: 2px solid #000; border-radius: 3px; padding: 2mm; margin: 2mm 0; text-transform: uppercase; letter-spacing: 1px; }
+    .label-qr-center { text-align: center; margin: 3mm 0; }
+    .label-details { flex: 1; }
+    .label-row { display: flex; justify-content: space-between; font-size: 10pt; padding: 1.5mm 0; border-bottom: 0.5px solid #eee; }
+    .label-row-key { font-weight: 700; color: #555; }
+    .label-row-val { font-weight: 500; }
+    .label-tags { display: flex; gap: 3mm; justify-content: center; margin: 2mm 0; }
+    .label-tag { font-size: 9pt; font-weight: 700; padding: 1mm 3mm; border-radius: 2px; border: 1px solid #ddd; }
+    .label-tag.ja { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+    .label-tag.nein { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
+    .label-footer { text-align: center; font-size: 8pt; color: #999; border-top: 1px solid #ddd; padding-top: 2mm; margin-top: auto; }
+  </style>${content}`;
+  pa.style.display = 'block';
   window.print();
-  setTimeout(()=>pa.style.display='none',1000);
+  setTimeout(() => pa.style.display = 'none', 1000);
 }
 
 // ═══════════════════════════════════════════════════════════════
