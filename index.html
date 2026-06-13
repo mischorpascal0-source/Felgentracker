@@ -1048,6 +1048,17 @@
     padding-top: 10px;
   }
 
+  .beleg-page { margin-bottom: 20px; }
+
+  .beleg-exemplar {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: right;
+    margin-bottom: 8px;
+  }
+
   #labelPreview {
     background: #fff;
     color: #000;
@@ -1853,11 +1864,11 @@
     <div class="modal-title">📄 Kundenbeleg (A4)</div>
     <div id="belegPreview"></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
-      💡 Im Druckdialog "A4" und "Ränder: Minimal" wählen.
+      💡 Es werden <strong>2 Exemplare</strong> gedruckt (Kunde + Betrieb). Im Druckdialog "A4" und "Ränder: Standard" wählen.
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeBeleg()">Schließen</button>
-      <button class="btn" onclick="printBeleg()">🖨️ Beleg drucken</button>
+      <button class="btn" onclick="printBeleg()">🖨️ 2 Exemplare drucken</button>
     </div>
   </div>
 </div>
@@ -2232,65 +2243,76 @@ function openBeleg(id) {
 
   const heute = new Date().toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  document.getElementById('belegPreview').innerHTML = `
-    <div class="beleg-header">
-      <div>
-        <div class="beleg-firma">Felgenservice Chemnitz</div>
-        <div class="beleg-firma-sub">Felgeninstandsetzung</div>
+  function belegSeite(exemplar) {
+    return `
+    <div class="beleg-page">
+      <div class="beleg-exemplar">${exemplar}</div>
+
+      <div class="beleg-header">
+        <div>
+          <div class="beleg-firma">Felgenservice Chemnitz</div>
+          <div class="beleg-firma-sub">Felgeninstandsetzung</div>
+        </div>
+        <div>
+          <div class="beleg-titel">Auftragsbestätigung</div>
+          <div class="beleg-datum">Datum: ${heute}</div>
+        </div>
       </div>
-      <div>
-        <div class="beleg-titel">Auftragsbestätigung</div>
-        <div class="beleg-datum">Datum: ${heute}</div>
+
+      <div class="beleg-section">
+        <div class="beleg-section-title">Fahrzeug</div>
+        <table class="beleg-table">
+          <tr><td>Kennzeichen</td><td><span class="beleg-kz">${r.kz}</span></td></tr>
+          <tr><td>Zollgröße</td><td>${r.zoll ? r.zoll + ' Zoll' : '–'}</td></tr>
+          <tr><td>Anzahl Felgen</td><td>${r.anzahl || '–'}</td></tr>
+        </table>
       </div>
-    </div>
 
-    <div class="beleg-section">
-      <div class="beleg-section-title">Fahrzeug</div>
-      <table class="beleg-table">
-        <tr><td>Kennzeichen</td><td><span class="beleg-kz">${r.kz}</span></td></tr>
-        <tr><td>Zollgröße</td><td>${r.zoll ? r.zoll + ' Zoll' : '–'}</td></tr>
-        <tr><td>Anzahl Felgen</td><td>${r.anzahl || '–'}</td></tr>
-      </table>
-    </div>
-
-    <div class="beleg-section">
-      <div class="beleg-section-title">Kundendaten</div>
-      <table class="beleg-table">
-        <tr><td>Name</td><td>${r.name}</td></tr>
-        <tr><td>Telefon</td><td>${r.tel || '–'}</td></tr>
-      </table>
-    </div>
-
-    <div class="beleg-section">
-      <div class="beleg-section-title">Auftragsdetails</div>
-      <table class="beleg-table">
-        <tr><td>Verrichtende Arbeit</td><td><strong>${arbeitLabels[r.arbeit] || '–'}</strong></td></tr>
-        <tr><td>Nabendeckel</td><td>${r.nabendeckel ? '✓ Ja' : '✗ Nein'}</td></tr>
-        <tr><td>Reifen</td><td>${r.reifen ? '✓ Ja' : '✗ Nein'}</td></tr>
-        <tr><td>Lagerort</td><td>${r.regal ? 'Regal ' + r.regal : '–'}</td></tr>
-        ${r.notiz ? `<tr><td>Notiz</td><td>${r.notiz}</td></tr>` : ''}
-        <tr><td>Eingangsdatum</td><td>${r.datum}</td></tr>
-        <tr><td>Status</td><td>${statusLabels[r.status]}</td></tr>
-      </table>
-    </div>
-
-    <div class="beleg-hinweis">
-      <strong>Hinweis:</strong> Bitte bewahren Sie diesen Beleg bis zur Abholung auf. Die Abholung erfolgt nach telefonischer Benachrichtigung.
-    </div>
-
-    <div class="beleg-unterschrift">
-      <div class="beleg-sig-line">
-        <div>Datum, Unterschrift Kunde</div>
+      <div class="beleg-section">
+        <div class="beleg-section-title">Kundendaten</div>
+        <table class="beleg-table">
+          <tr><td>Name</td><td>${r.name}</td></tr>
+          <tr><td>Telefon</td><td>${r.tel || '–'}</td></tr>
+        </table>
       </div>
-      <div class="beleg-sig-line">
-        <div>Datum, Unterschrift Betrieb</div>
-      </div>
-    </div>
 
-    <div class="beleg-footer-text">
-      Vielen Dank für Ihren Auftrag!
-    </div>
-  `;
+      <div class="beleg-section">
+        <div class="beleg-section-title">Auftragsdetails</div>
+        <table class="beleg-table">
+          <tr><td>Verrichtende Arbeit</td><td><strong>${arbeitLabels[r.arbeit] || '–'}</strong></td></tr>
+          <tr><td>Nabendeckel</td><td>${r.nabendeckel ? '✓ Ja' : '✗ Nein'}</td></tr>
+          <tr><td>Reifen</td><td>${r.reifen ? '✓ Ja' : '✗ Nein'}</td></tr>
+          <tr><td>Lagerort</td><td>${r.regal ? 'Regal ' + r.regal : '–'}</td></tr>
+          ${r.notiz ? `<tr><td>Notiz</td><td>${r.notiz}</td></tr>` : ''}
+          <tr><td>Eingangsdatum</td><td>${r.datum}</td></tr>
+          <tr><td>Status</td><td>${statusLabels[r.status]}</td></tr>
+        </table>
+      </div>
+
+      <div class="beleg-hinweis">
+        <strong>Hinweis:</strong> Bitte bewahren Sie diesen Beleg bis zur Abholung auf. Die Abholung erfolgt nach telefonischer Benachrichtigung.
+      </div>
+
+      <div class="beleg-unterschrift">
+        <div class="beleg-sig-line">
+          <div>Datum, Unterschrift Kunde</div>
+        </div>
+        <div class="beleg-sig-line">
+          <div>Datum, Unterschrift Betrieb</div>
+        </div>
+      </div>
+
+      <div class="beleg-footer-text">
+        Vielen Dank für Ihren Auftrag!
+      </div>
+    </div>`;
+  }
+
+  // In der Vorschau nur 1 Exemplar zeigen
+  document.getElementById('belegPreview').innerHTML = belegSeite('Kundenexemplar');
+
+  // Beide Exemplare für den Druck vorbereiten
+  window._belegPrintContent = belegSeite('Kundenexemplar') + belegSeite('Betriebsexemplar');
 
   document.getElementById('belegOverlay').classList.add('open');
 }
@@ -2299,26 +2321,30 @@ function closeBeleg() { document.getElementById('belegOverlay').classList.remove
 function closeBelegOnOverlay(e) { if (e.target === document.getElementById('belegOverlay')) closeBeleg(); }
 
 function printBeleg() {
-  const content = document.getElementById('belegPreview').innerHTML;
+  const content = window._belegPrintContent || document.getElementById('belegPreview').innerHTML;
   const pa = document.getElementById('printArea');
   pa.innerHTML = `<style>
-    body { font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.6; color: #000; }
-    .beleg-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #000; padding-bottom: 16px; margin-bottom: 24px; }
-    .beleg-firma { font-size: 28px; font-weight: 900; letter-spacing: 2px; }
+    @page { size: A4; margin: 15mm 20mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #000; margin: 0; padding: 0; }
+    .beleg-page { page-break-after: always; padding: 10px 0; }
+    .beleg-page:last-child { page-break-after: auto; }
+    .beleg-exemplar { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 2px; text-align: right; margin-bottom: 8px; }
+    .beleg-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #000; padding-bottom: 14px; margin-bottom: 22px; }
+    .beleg-firma { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
     .beleg-firma-sub { font-size: 12px; color: #666; margin-top: 2px; }
-    .beleg-titel { font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #333; text-align: right; }
-    .beleg-datum { font-size: 13px; color: #666; text-align: right; margin-top: 4px; }
-    .beleg-section { margin-bottom: 20px; }
-    .beleg-section-title { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+    .beleg-titel { font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #333; text-align: right; }
+    .beleg-datum { font-size: 12px; color: #666; text-align: right; margin-top: 4px; }
+    .beleg-section { margin-bottom: 18px; }
+    .beleg-section-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-bottom: 6px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
     .beleg-table { width: 100%; border-collapse: collapse; }
-    .beleg-table td { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .beleg-table td { padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
     .beleg-table td:first-child { font-weight: 600; color: #555; width: 160px; }
-    .beleg-kz { font-size: 28px; font-weight: 900; letter-spacing: 3px; }
-    .beleg-hinweis { background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 14px; font-size: 12px; color: #666; line-height: 1.6; margin-top: 20px; }
-    .beleg-unterschrift { display: flex; justify-content: space-between; margin-top: 50px; }
-    .beleg-sig-line { width: 220px; text-align: center; }
-    .beleg-sig-line div:first-child { border-top: 1px solid #000; padding-top: 6px; font-size: 12px; color: #666; }
-    .beleg-footer-text { text-align: center; font-size: 11px; color: #aaa; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; }
+    .beleg-kz { font-size: 24px; font-weight: 900; letter-spacing: 3px; }
+    .beleg-hinweis { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; font-size: 11px; color: #666; line-height: 1.6; margin-top: 18px; }
+    .beleg-unterschrift { display: flex; justify-content: space-between; margin-top: 45px; }
+    .beleg-sig-line { width: 200px; text-align: center; }
+    .beleg-sig-line div:first-child { border-top: 1px solid #000; padding-top: 6px; font-size: 11px; color: #666; }
+    .beleg-footer-text { text-align: center; font-size: 10px; color: #bbb; margin-top: 25px; border-top: 1px solid #eee; padding-top: 8px; }
   </style>${content}`;
   pa.style.display = 'block';
   window.print();
