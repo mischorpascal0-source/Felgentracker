@@ -67,7 +67,8 @@
   [data-theme="light"] .action-btn.print-btn:hover { border-color: #6b5ca0; color: #6b5ca0; }
   [data-theme="light"] .action-btn.historie-btn:hover { border-color: var(--green); color: var(--green); }
   [data-theme="light"] .action-btn.beleg-btn:hover { border-color: var(--blue); color: var(--blue); }
-  [data-theme="light"] .action-btn.delete-btn:hover { border-color: var(--red); color: var(--red); }
+  [data-theme="light"] .action-btn.delete-btn { border-color: var(--red); color: var(--red); }
+  [data-theme="light"] .action-btn.delete-btn:hover { background: var(--red); color: #fff; }
 
   /* Light: Logout */
   [data-theme="light"] .logout-btn { border-color: var(--border); color: #6b6560; }
@@ -431,7 +432,7 @@
 
   .date-cell { color: var(--muted); font-size: 13px; }
 
-  .action-group { display: flex; gap: 6px; }
+  .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
   .action-btn {
     background: transparent;
@@ -447,7 +448,17 @@
 
   .action-btn:hover { border-color: var(--accent); color: var(--accent); }
   .action-btn.print-btn:hover { border-color: #a78bfa; color: #a78bfa; }
-  .action-btn.delete-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* Löschen-Button immer rot sichtbar */
+  .action-btn.delete-btn {
+    border-color: var(--red);
+    color: var(--red);
+    font-weight: 600;
+  }
+  .action-btn.delete-btn:hover {
+    background: var(--red);
+    color: #fff;
+  }
 
   .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
   .empty-icon { font-size: 48px; margin-bottom: 12px; }
@@ -1672,6 +1683,16 @@
           <option value="24">24 Zoll</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>Anzahl Felgen *</label>
+        <select id="inputAnzahl">
+          <option value="">– wählen –</option>
+          <option value="1">1 Felge</option>
+          <option value="2">2 Felgen</option>
+          <option value="3">3 Felgen</option>
+          <option value="4">4 Felgen</option>
+        </select>
+      </div>
     </div>
     <div class="form-group">
       <label>Notiz <span id="notizPflicht" style="display:none;color:var(--red)">*</span></label>
@@ -1798,14 +1819,14 @@
 <!-- LABEL MODAL -->
 <div class="modal-overlay" id="labelModalOverlay" onclick="closeLabelOnOverlay(event)">
   <div class="modal label-modal">
-    <div class="modal-title">🏷️ Label drucken</div>
+    <div class="modal-title" id="labelModalTitle">🏷️ Label drucken</div>
     <div id="labelPreview"></div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="labelHint">
       💡 Im Druckdialog "Ränder: Keine" wählen für bestes Ergebnis.
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeLabelModal()">Schließen</button>
-      <button class="btn" onclick="printLabel()">🖨️ Drucken</button>
+      <button class="btn" id="labelPrintBtn" onclick="printLabel()">🖨️ Drucken</button>
     </div>
   </div>
 </div>
@@ -2058,6 +2079,7 @@ async function loadData(silent = false) {
       id:    r.id,
       kz:    r.kz    || '',
       zoll:  r.zoll  || '',
+      anzahl: r.anzahl || '',
       name:  r.name  || '',
       tel:   r.tel   || '',
       notiz: r.notiz || '',
@@ -2227,6 +2249,7 @@ function openBeleg(id) {
       <table class="beleg-table">
         <tr><td>Kennzeichen</td><td><span class="beleg-kz">${r.kz}</span></td></tr>
         <tr><td>Zollgröße</td><td>${r.zoll ? r.zoll + ' Zoll' : '–'}</td></tr>
+        <tr><td>Anzahl Felgen</td><td>${r.anzahl || '–'}</td></tr>
       </table>
     </div>
 
@@ -2352,7 +2375,7 @@ function renderTable() {
     const tr = document.createElement('tr');
     tr.dataset.id = r.id;
     tr.innerHTML = `
-      <td><span class="kz">${r.kz}</span>${r.zoll ? ` <span style="color:var(--muted);font-size:12px">${r.zoll}"</span>` : ''}</td>
+      <td><span class="kz">${r.kz}</span> <span style="color:var(--muted);font-size:12px">${r.zoll ? r.zoll+'"' : ''} ${r.anzahl ? '· '+r.anzahl+'x' : ''}</span></td>
       <td>
         <div class="customer-name">${r.name}</div>
         <div class="customer-phone">${r.tel || '–'}</div>
@@ -2398,7 +2421,7 @@ function renderTable() {
     card.dataset.id = r.id;
     card.innerHTML = `
       <div class="mobile-card-top">
-        <span class="mobile-card-kz">${r.kz}${r.zoll ? ` · ${r.zoll}"` : ''}</span>
+        <span class="mobile-card-kz">${r.kz}${r.zoll ? ` · ${r.zoll}"` : ''}${r.anzahl ? ` · ${r.anzahl}x` : ''}</span>
         <span class="status ${r.status}">
           <span class="status-dot"></span>
           ${statusLabels[r.status]}
@@ -2502,6 +2525,7 @@ function openModal(id=null) {
     if (!r) return;
     document.getElementById('inputKZ').value    = r.kz;
     document.getElementById('inputZoll').value  = r.zoll;
+    document.getElementById('inputAnzahl').value = r.anzahl;
     document.getElementById('inputNotiz').value = r.notiz;
     document.getElementById('inputName').value  = r.name;
     document.getElementById('inputTel').value   = r.tel;
@@ -2513,6 +2537,7 @@ function openModal(id=null) {
   } else {
     ['inputKZ','inputNotiz','inputName','inputTel'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('inputZoll').value='';
+    document.getElementById('inputAnzahl').value='';
     document.getElementById('inputRegal').value='';
     resetToggle('toggleNabendeckel');
     resetToggle('toggleReifen');
@@ -2612,6 +2637,7 @@ async function saveEntry() {
   const name = document.getElementById('inputName').value.trim();
   const notiz = document.getElementById('inputNotiz').value.trim();
   const zoll = document.getElementById('inputZoll').value;
+  const anzahl = document.getElementById('inputAnzahl').value;
   const highlight = id => {
     const el = document.getElementById(id);
     el.style.borderColor='var(--red)';
@@ -2631,6 +2657,7 @@ async function saveEntry() {
   if (!kz)   { highlight('inputKZ'); valid = false; }
   if (!name) { highlight('inputName'); valid = false; }
   if (!zoll) { highlight('inputZoll'); valid = false; }
+  if (!anzahl) { highlight('inputAnzahl'); valid = false; }
   if (!selectedArbeit) { highlightGrid('.arbeit-option'); valid = false; }
   if (selectedArbeit === 'siehe_notiz' && !notiz) { highlight('inputNotiz'); valid = false; }
   if (!nabendeckelVal) { highlightGrid('#toggleNabendeckel .toggle-btn'); valid = false; }
@@ -2638,7 +2665,7 @@ async function saveEntry() {
   if (!valid) return;
 
   const entry = {
-    kz, name, zoll,
+    kz, name, zoll, anzahl,
     tel:   document.getElementById('inputTel').value.trim(),
     notiz: notiz,
     nabendeckel: nabendeckelVal === 'ja',
@@ -2708,9 +2735,18 @@ async function deleteEntry(id) {
 // LABEL
 // ═══════════════════════════════════════════════════════════════
 
+let currentLabelAnzahl = 1;
+
 function openLabelModal(id) {
   const r = data.find(x=>x.id===id);
   if (!r) return;
+  currentLabelAnzahl = parseInt(r.anzahl) || 1;
+
+  // Titel und Button mit Anzahl
+  document.getElementById('labelModalTitle').textContent = `🏷️ Label drucken (${currentLabelAnzahl}x)`;
+  document.getElementById('labelPrintBtn').textContent = `🖨️ ${currentLabelAnzahl} Label drucken`;
+  document.getElementById('labelHint').innerHTML = `💡 Es werden <strong>${currentLabelAnzahl} Label</strong> gedruckt (1 pro Felge). Im Druckdialog "Ränder: Keine" wählen.`;
+
   const qrUrl = window.location.href.split('?')[0]+'?id='+r.id;
   document.getElementById('labelPreview').innerHTML = `
     <div class="label-outer">
@@ -2719,7 +2755,7 @@ function openLabelModal(id) {
       </div>
 
       <div class="label-kz">${r.kz}</div>
-      <div class="label-zoll">${r.zoll ? r.zoll + ' Zoll' : ''}</div>
+      <div class="label-zoll">${r.zoll ? r.zoll + ' Zoll' : ''} ${r.anzahl ? '· ' + r.anzahl + ' Felgen' : ''}</div>
 
       <div class="label-arbeit">${arbeitLabels[r.arbeit] || '–'}</div>
 
@@ -2755,9 +2791,17 @@ function closeLabelOnOverlay(e) { if(e.target===document.getElementById('labelMo
 function printLabel() {
   const content = document.getElementById('labelPreview').innerHTML;
   const pa = document.getElementById('printArea');
+
+  // Label so oft duplizieren wie Felgen angegeben
+  let allLabels = '';
+  for (let i = 0; i < currentLabelAnzahl; i++) {
+    allLabels += content;
+  }
+
   pa.innerHTML = `<style>
     body { font-family: sans-serif; margin: 0; padding: 0; }
-    .label-outer { width: 102mm; height: 210mm; padding: 6mm 5mm; display: flex; flex-direction: column; box-sizing: border-box; }
+    .label-outer { width: 102mm; height: 210mm; padding: 6mm 5mm; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; }
+    .label-outer:last-child { page-break-after: auto; }
     .label-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 3mm; margin-bottom: 3mm; }
     .label-firma { font-size: 14pt; font-weight: 900; letter-spacing: 2px; }
     .label-kz { font-size: 32pt; font-weight: 900; letter-spacing: 4px; text-align: center; line-height: 1; margin: 3mm 0 1mm; }
@@ -2773,7 +2817,7 @@ function printLabel() {
     .label-tag.ja { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
     .label-tag.nein { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
     .label-footer { text-align: center; font-size: 8pt; color: #999; border-top: 1px solid #ddd; padding-top: 2mm; margin-top: auto; }
-  </style>${content}`;
+  </style>${allLabels}`;
   pa.style.display = 'block';
   window.print();
   setTimeout(() => pa.style.display = 'none', 1000);
@@ -2795,6 +2839,7 @@ function openQuick(id) {
 
   const details = [
     r.zoll ? r.zoll + ' Zoll' : null,
+    r.anzahl ? r.anzahl + 'x Felgen' : null,
     r.tel,
     r.regal ? `Regal ${r.regal}` : null,
     r.arbeit ? arbeitLabels[r.arbeit] : null,
