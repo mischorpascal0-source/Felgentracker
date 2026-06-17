@@ -1741,7 +1741,7 @@
     </div>
 
     <div class="form-group">
-      <label>Preis (€)</label>
+      <label>Preis (€) *</label>
       <input type="number" id="inputPreis" placeholder="z.B. 250" min="0" step="0.01" style="font-weight:600">
     </div>
 
@@ -2692,12 +2692,14 @@ async function saveEntry() {
 
   const nabendeckelVal = getToggleVal('toggleNabendeckel');
   const reifenVal = getToggleVal('toggleReifen');
+  const preis = document.getElementById('inputPreis').value;
 
   let valid = true;
   if (!kz)   { highlight('inputKZ'); valid = false; }
   if (!name) { highlight('inputName'); valid = false; }
   if (!zoll) { highlight('inputZoll'); valid = false; }
   if (!anzahl) { highlight('inputAnzahl'); valid = false; }
+  if (!preis) { highlight('inputPreis'); valid = false; }
   if (!selectedArbeit) { highlightGrid('.arbeit-option'); valid = false; }
   if (selectedArbeit === 'siehe_notiz' && !notiz) { highlight('inputNotiz'); valid = false; }
   if (!nabendeckelVal) { highlightGrid('#toggleNabendeckel .toggle-btn'); valid = false; }
@@ -2711,7 +2713,7 @@ async function saveEntry() {
     nabendeckel: nabendeckelVal === 'ja',
     reifen: reifenVal === 'ja',
     arbeit: selectedArbeit,
-    preis: document.getElementById('inputPreis').value || null,
+    preis: preis || null,
     regal: document.getElementById('inputRegal').value,
     status: selectedStatus,
     datum: new Date().toLocaleDateString('de-DE'),
