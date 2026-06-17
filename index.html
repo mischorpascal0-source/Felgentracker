@@ -1740,6 +1740,11 @@
       </div>
     </div>
 
+    <div class="form-group">
+      <label>Preis (€)</label>
+      <input type="number" id="inputPreis" placeholder="z.B. 250" min="0" step="0.01" style="font-weight:600">
+    </div>
+
     <hr class="divider">
     <div class="section-label">Kunde</div>
     <div class="form-row">
@@ -2097,6 +2102,7 @@ async function loadData(silent = false) {
       nabendeckel: r.nabendeckel === true || r.nabendeckel === 'ja',
       reifen: r.reifen === true || r.reifen === 'ja',
       arbeit: r.arbeit || '',
+      preis: r.preis || '',
       regal: r.regal || '',
       status: r.status || 'eingang',
       datum: r.datum || new Date(r.created_at).toLocaleDateString('de-DE'),
@@ -2287,6 +2293,7 @@ function openBeleg(id) {
           ${r.notiz ? `<tr><td>Notiz</td><td>${r.notiz}</td></tr>` : ''}
           <tr><td>Eingangsdatum</td><td>${r.datum}</td></tr>
           <tr><td>Status</td><td>${statusLabels[r.status]}</td></tr>
+          ${r.preis ? `<tr><td><strong>Preis</strong></td><td><strong>${parseFloat(r.preis).toFixed(2)} €</strong></td></tr>` : ''}
         </table>
       </div>
 
@@ -2414,7 +2421,7 @@ function renderTable() {
           ${r.reifen ? '<span class="mini-tag" style="background:rgba(76,175,125,0.1);color:var(--green);border-color:rgba(76,175,125,0.2)">Reifen ✓</span>' : '<span class="mini-tag" style="background:rgba(255,79,79,0.08);color:var(--red);border-color:rgba(255,79,79,0.15)">Reifen ✗</span>'}
         </div>
       </td>
-      <td>${r.arbeit ? `<span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span>` : '–'}</td>
+      <td>${r.arbeit ? `<span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span>` : '–'}${r.preis ? `<div style="margin-top:4px;font-weight:700;color:var(--green);font-size:14px">${parseFloat(r.preis).toFixed(2)} €</div>` : ''}</td>
       <td>${r.regal ? `<span class="regal-badge">🗄 Regal ${r.regal}</span>` : '<span style="color:var(--muted)">–</span>'}</td>
       <td>
         <span class="status ${r.status}">
@@ -2477,6 +2484,11 @@ function renderTable() {
       <div class="mobile-card-row">
         <span class="label">Arbeit</span>
         <span class="value"><span class="arbeit-badge">${arbeitLabels[r.arbeit] || r.arbeit}</span></span>
+      </div>` : ''}
+      ${r.preis ? `
+      <div class="mobile-card-row">
+        <span class="label">Preis</span>
+        <span class="value" style="font-weight:700;color:var(--green)">${parseFloat(r.preis).toFixed(2)} €</span>
       </div>` : ''}
       <div class="mobile-card-row">
         <span class="label">Nabendeckel</span>
@@ -2556,13 +2568,14 @@ function openModal(id=null) {
     document.getElementById('inputNotiz').value = r.notiz;
     document.getElementById('inputName').value  = r.name;
     document.getElementById('inputTel').value   = r.tel;
+    document.getElementById('inputPreis').value = r.preis;
     document.getElementById('inputRegal').value = r.regal;
     setToggleFromBool('toggleNabendeckel', r.nabendeckel);
     setToggleFromBool('toggleReifen', r.reifen);
     selectArbeitByVal(r.arbeit);
     selectStatusByVal(r.status);
   } else {
-    ['inputKZ','inputNotiz','inputName','inputTel'].forEach(id=>document.getElementById(id).value='');
+    ['inputKZ','inputNotiz','inputName','inputTel','inputPreis'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('inputZoll').value='';
     document.getElementById('inputAnzahl').value='';
     document.getElementById('inputRegal').value='';
@@ -2698,6 +2711,7 @@ async function saveEntry() {
     nabendeckel: nabendeckelVal === 'ja',
     reifen: reifenVal === 'ja',
     arbeit: selectedArbeit,
+    preis: document.getElementById('inputPreis').value || null,
     regal: document.getElementById('inputRegal').value,
     status: selectedStatus,
     datum: new Date().toLocaleDateString('de-DE'),
