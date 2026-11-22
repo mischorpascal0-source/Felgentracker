@@ -1072,7 +1072,7 @@
     width: 100%;
     max-width: 340px;
     margin: 0 auto;
-    aspect-ratio: 102 / 210;
+    aspect-ratio: 102 / 152;
     border: 1px dashed #ccc;
     padding: 18px 14px;
     display: flex;
@@ -1158,8 +1158,19 @@
     border: 1px solid #ddd;
   }
 
-  .label-tag.ja { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
-  .label-tag.nein { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
+  /* Thermodrucker: nur Schwarz/Weiß – "Ja" invertiert, "Nein" umrandet */
+  .label-tag.ja { background: #000; color: #fff; border-color: #000; }
+  .label-tag.nein { background: #fff; color: #000; border-color: #000; }
+
+  .label-size-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .label-size-row input { width: 64px; padding: 4px 6px; font-size: 12px; }
 
   .label-footer {
     text-align: center;
@@ -1837,11 +1848,17 @@
   <div class="modal label-modal">
     <div class="modal-title" id="labelModalTitle">🏷️ Label drucken</div>
     <div id="labelPreview"></div>
+    <div class="label-size-row">
+      <span>Etikett (Zebra 105SL Plus):</span>
+      <input type="number" id="labelW" min="20" max="104" step="1" onchange="saveLabelSize()"> ×
+      <input type="number" id="labelH" min="20" max="400" step="1" onchange="saveLabelSize()"> mm
+    </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="labelHint">
-      💡 Im Druckdialog "Ränder: Keine" wählen für bestes Ergebnis.
+      💡 Druck direkt per Zebra Browser Print.
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeLabelModal()">Schließen</button>
+      <button class="btn btn-ghost" onclick="printLabelDialog()" title="Über den Windows-Druckdialog (ZDesigner-Treiber)">Druckdialog</button>
       <button class="btn" id="labelPrintBtn" onclick="printLabel()">🖨️ Drucken</button>
     </div>
   </div>
@@ -2784,20 +2801,51 @@ async function deleteEntry(id) {
 // ═══════════════════════════════════════════════════════════════
 
 let currentLabelAnzahl = 1;
+let currentLabelRecord = null;
+
+// ── Zebra 105SL Plus · 203 dpi · ZPL ───────────────────────────
+const ZEBRA_DPMM = 8;            // 203 dpi ≈ 8 Punkte pro mm
+const ZEBRA_MAX_WIDTH_MM = 104;  // max. Druckbreite 105SL Plus (203 dpi)
+const LABEL_DEFAULT = { w: 102, h: 152 }; // 4" × 6" Standardetikett
+
+function getLabelSize() {
+  try {
+    const s = JSON.parse(localStorage.getItem('ft_label_size') || 'null');
+    if (s && s.w > 0 && s.h > 0) return s;
+  } catch(e) {}
+  return { ...LABEL_DEFAULT };
+}
+
+function saveLabelSize() {
+  let w = parseFloat(document.getElementById('labelW').value) || LABEL_DEFAULT.w;
+  let h = parseFloat(document.getElementById('labelH').value) || LABEL_DEFAULT.h;
+  w = Math.min(Math.max(w, 20), ZEBRA_MAX_WIDTH_MM);
+  h = Math.min(Math.max(h, 20), 400);
+  document.getElementById('labelW').value = w;
+  document.getElementById('labelH').value = h;
+  try { localStorage.setItem('ft_label_size', JSON.stringify({ w, h })); } catch(e) {}
+  const outer = document.querySelector('#labelPreview .label-outer');
+  if (outer) outer.style.aspectRatio = `${w} / ${h}`;
+}
 
 function openLabelModal(id) {
   const r = data.find(x=>x.id===id);
   if (!r) return;
+  currentLabelRecord = r;
   currentLabelAnzahl = parseInt(r.anzahl) || 1;
+
+  const size = getLabelSize();
+  document.getElementById('labelW').value = size.w;
+  document.getElementById('labelH').value = size.h;
 
   // Titel und Button mit Anzahl
   document.getElementById('labelModalTitle').textContent = `🏷️ Label drucken (${currentLabelAnzahl}x)`;
   document.getElementById('labelPrintBtn').textContent = `🖨️ ${currentLabelAnzahl} Label drucken`;
-  document.getElementById('labelHint').innerHTML = `💡 Es werden <strong>${currentLabelAnzahl} Label</strong> gedruckt (1 pro Felge). Im Druckdialog "Ränder: Keine" wählen.`;
+  document.getElementById('labelHint').innerHTML = `💡 Es werden <strong>${currentLabelAnzahl} Label</strong> gedruckt (1 pro Felge) – direkt an den Zebra über <strong>Zebra Browser Print</strong>.`;
 
   const qrUrl = window.location.href.split('?')[0]+'?id='+r.id;
   document.getElementById('labelPreview').innerHTML = `
-    <div class="label-outer">
+    <div class="label-outer" style="aspect-ratio:${size.w} / ${size.h}">
       <div class="label-header">
         <div class="label-firma">Felgenservice Chemnitz</div>
       </div>
@@ -2836,9 +2884,177 @@ function openLabelModal(id) {
 function closeLabelModal() { document.getElementById('labelModalOverlay').classList.remove('open'); }
 function closeLabelOnOverlay(e) { if(e.target===document.getElementById('labelModalOverlay')) closeLabelModal(); }
 
-function printLabel() {
+// Text für ZPL säubern (^ und ~ sind Steuerzeichen)
+function zplText(s, maxLen) {
+  let t = String(s ?? '').replace(/[\^~\\]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (maxLen && t.length > maxLen) t = t.slice(0, maxLen - 1) + '…';
+  return t;
+}
+
+// Ungefähre Modulanzahl des QR-Codes (Fehlerkorrektur M, Byte-Modus)
+function qrModules(len) {
+  const cap = [14, 26, 42, 62, 84, 106, 122, 152, 180, 213];
+  const v = cap.findIndex(c => len <= c) + 1 || 10;
+  return 17 + 4 * v;
+}
+
+function buildLabelZPL(r, size, qty) {
+  const W = Math.round(size.w * ZEBRA_DPMM);
+  const H = Math.round(size.h * ZEBRA_DPMM);
+  const m = 3 * ZEBRA_DPMM;             // 3 mm Rand
+  const iw = W - 2 * m;                 // Innenbreite
+  const qrUrl = window.location.href.split('?')[0] + '?id=' + r.id;
+  const z = [];
+  let y = m;
+
+  z.push('^XA', '^CI28', `^PW${W}`, `^LL${H}`, '^LH0,0', '^MD10');
+
+  // Firmenkopf + Linie
+  z.push(`^FO${m},${y}^A0N,36,36^FB${iw},1,0,C^FDFelgenservice Chemnitz^FS`);
+  y += 44;
+  z.push(`^FO${m},${y}^GB${iw},4,4^FS`);
+  y += 16;
+
+  // Kennzeichen – Schriftgröße an Länge anpassen
+  const kz = zplText(r.kz, 14);
+  const kzSize = Math.max(50, Math.min(120, Math.floor(iw / (Math.max(kz.length, 1) * 0.62))));
+  z.push(`^FO${m},${y}^A0N,${kzSize},${kzSize}^FB${iw},1,0,C^FD${kz}^FS`);
+  y += kzSize + 8;
+
+  // Zoll · Anzahl
+  const zollTxt = [r.zoll ? r.zoll + ' Zoll' : '', r.anzahl ? r.anzahl + ' Felgen' : ''].filter(Boolean).join(' · ');
+  if (zollTxt) {
+    z.push(`^FO${m},${y}^A0N,40,40^FB${iw},1,0,C^FD${zplText(zollTxt)}^FS`);
+    y += 52;
+  }
+
+  // Arbeit – invertierter Balken
+  const arbeit = zplText((arbeitLabels[r.arbeit] || '–').toUpperCase(), 28);
+  z.push(`^FO${m},${y}^GB${iw},64,64^FS`);
+  z.push(`^FO${m},${y + 13}^A0N,42,42^FB${iw},1,0,C^FR^FD${arbeit}^FS`);
+  y += 80;
+
+  // Unterer Block (Details, Tags, Footer) von unten her planen
+  const rows = [
+    ['Kunde',   zplText(r.name, 30)],
+    ['Telefon', zplText(r.tel || '–', 30)],
+    ['Regal',   r.regal ? 'Regal ' + zplText(r.regal, 20) : '–'],
+    ['Eingang', zplText(r.datum, 20)],
+  ];
+  const rowH = 40;
+  const notiz = r.notiz ? zplText(r.notiz, 90) : '';
+  const notizH = notiz ? 2 * 32 + 16 : 0;
+  const footerH = 40;
+  const tagsH = 62;
+  const bottomH = rows.length * rowH + notizH + tagsH + footerH + 8;
+
+  // QR-Code im verbleibenden Platz
+  const qrAvail = (H - m - bottomH) - y - 10;
+  const mods = qrModules(qrUrl.length + 3);
+  const mag = Math.max(2, Math.min(10, Math.floor(qrAvail / mods)));
+  const qrSize = mods * mag;
+  if (qrAvail >= mods * 2) {
+    const qrX = Math.round((W - qrSize) / 2);
+    z.push(`^FO${qrX},${y}^BQN,2,${mag}^FDMA,${qrUrl}^FS`);
+    y += qrSize + 10;
+  }
+
+  // Details
+  y = Math.max(y, H - m - bottomH);
+  rows.forEach(([k, v]) => {
+    z.push(`^FO${m},${y}^A0N,30,30^FD${k}^FS`);
+    z.push(`^FO${m},${y}^A0N,30,30^FB${iw},1,0,R^FD${v}^FS`);
+    y += rowH - 6;
+    z.push(`^FO${m},${y}^GB${iw},1,1^FS`);
+    y += 6;
+  });
+  if (notiz) {
+    y += 6;
+    z.push(`^FO${m},${y}^A0N,28,28^FB${iw},2,4,L^FDNotiz: ${notiz}^FS`);
+    y += notizH - 6;
+  }
+
+  // Nabendeckel / Reifen – "Ja" schwarz gefüllt, "Nein" nur umrandet
+  y += 4;
+  const gap = 2 * ZEBRA_DPMM;
+  const tw = Math.floor((iw - gap) / 2);
+  [['Nabendeckel', r.nabendeckel], ['Reifen', r.reifen]].forEach(([k, v], i) => {
+    const x = m + i * (tw + gap);
+    const txt = `${k}: ${v ? 'Ja' : 'Nein'}`;
+    z.push(`^FO${x},${y}^GB${tw},50,${v ? 50 : 3}^FS`);
+    z.push(`^FO${x},${y + 12}^A0N,30,30^FB${tw},1,0,C${v ? '^FR' : ''}^FD${txt}^FS`);
+  });
+
+  // Footer am unteren Rand
+  const fy = H - m - 26;
+  z.push(`^FO${m},${fy - 8}^GB${iw},1,1^FS`);
+  z.push(`^FO${m},${fy}^A0N,22,22^FB${iw},1,0,C^FDQR-Code scannen zum Status-Update · FelgenTrack^FS`);
+
+  z.push(`^PQ${Math.max(1, qty)},0,1,Y`, '^XZ');
+  return z.join('\n');
+}
+
+// ── Zebra Browser Print (lokaler Dienst auf dem PC am Drucker) ──
+const ZEBRA_BP_HOSTS = ['http://127.0.0.1:9100', 'https://127.0.0.1:9101'];
+
+async function zebraRequest(path, options = {}) {
+  let lastErr;
+  for (const host of ZEBRA_BP_HOSTS) {
+    try {
+      const res = await fetch(host + path, options);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr || new Error('Zebra Browser Print nicht erreichbar');
+}
+
+async function getZebraPrinter() {
+  const txt = await zebraRequest('/default?type=printer');
+  if (txt && txt.trim()) return JSON.parse(txt);
+  // Kein Standarddrucker gesetzt → ersten verfügbaren nehmen
+  const all = JSON.parse(await zebraRequest('/available') || '{}');
+  if (all.printer && all.printer.length) return all.printer[0];
+  throw new Error('Kein Zebra-Drucker gefunden');
+}
+
+async function sendZPL(zpl) {
+  const device = await getZebraPrinter();
+  await zebraRequest('/write', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ device, data: zpl }),
+  });
+  return device;
+}
+
+async function printLabel() {
+  const r = currentLabelRecord;
+  if (!r) return;
+  const btn = document.getElementById('labelPrintBtn');
+  const btnText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Sende an Zebra…';
+  try {
+    const zpl = buildLabelZPL(r, getLabelSize(), currentLabelAnzahl);
+    const dev = await sendZPL(zpl);
+    showToast(`🏷️ ${currentLabelAnzahl} Label an ${dev.name || 'Zebra'} gesendet`);
+  } catch(e) {
+    console.error('Zebra-Druck fehlgeschlagen:', e);
+    if (confirm('Der Zebra-Drucker ist über Browser Print nicht erreichbar.\n\nLäuft "Zebra Browser Print" auf diesem PC?\n\nStattdessen über den normalen Druckdialog drucken?')) {
+      printLabelDialog();
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = btnText;
+  }
+}
+
+// Ausweichweg: Druckdialog mit ZDesigner-Treiber
+function printLabelDialog() {
   const content = document.getElementById('labelPreview').innerHTML;
   const pa = document.getElementById('printArea');
+  const size = getLabelSize();
 
   // Label so oft duplizieren wie Felgen angegeben
   let allLabels = '';
@@ -2847,8 +3063,10 @@ function printLabel() {
   }
 
   pa.innerHTML = `<style>
+    @page { size: ${size.w}mm ${size.h}mm; margin: 0; }
     body { font-family: sans-serif; margin: 0; padding: 0; }
-    .label-outer { width: 102mm; height: 210mm; padding: 6mm 5mm; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; }
+    .label-outer { width: ${size.w}mm !important; height: ${size.h}mm; max-width: none !important; aspect-ratio: auto !important; border: none !important; padding: 4mm 4mm; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; overflow: hidden; }
+    .label-qr-center img, .label-qr-center canvas { margin: 0 auto; }
     .label-outer:last-child { page-break-after: auto; }
     .label-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 3mm; margin-bottom: 3mm; }
     .label-firma { font-size: 14pt; font-weight: 900; letter-spacing: 2px; }
@@ -2862,9 +3080,12 @@ function printLabel() {
     .label-row-val { font-weight: 500; }
     .label-tags { display: flex; gap: 3mm; justify-content: center; margin: 2mm 0; }
     .label-tag { font-size: 9pt; font-weight: 700; padding: 1mm 3mm; border-radius: 2px; border: 1px solid #ddd; }
-    .label-tag.ja { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
-    .label-tag.nein { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
-    .label-footer { text-align: center; font-size: 8pt; color: #999; border-top: 1px solid #ddd; padding-top: 2mm; margin-top: auto; }
+    * { color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .label-tag { border-color: #000 !important; }
+    .label-tag.ja { background: #000 !important; color: #fff !important; }
+    .label-tag.nein { background: #fff !important; }
+    .label-row { border-bottom-color: #000 !important; }
+    .label-footer { text-align: center; font-size: 8pt; border-top: 1px solid #000; padding-top: 2mm; margin-top: auto; }
   </style>${allLabels}`;
   pa.style.display = 'block';
   window.print();
